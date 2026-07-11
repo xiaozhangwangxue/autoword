@@ -32,14 +32,14 @@ jobs:
           python-version: '3.11'
       - run: python -m pip install -r requirements-build.txt
       - name: Package application
-        run: pyinstaller --noconfirm --clean --onefile --name AutoWord desktop.py
+        run: pyinstaller --noconfirm --clean --windowed --onedir --name AutoWord desktop.py
       - name: Archive application (Unix)
         if: runner.os != 'Windows'
-        run: tar -C dist -czf AutoWord-${{ matrix.name }}.tar.gz AutoWord
+        run: cd dist && tar -czf ../AutoWord-${{ matrix.name }}.tar.gz AutoWord*
       - name: Archive application (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: Compress-Archive -Path dist/AutoWord.exe -DestinationPath AutoWord-windows.zip
+        run: Compress-Archive -Path dist/AutoWord -DestinationPath AutoWord-windows.zip
       - uses: actions/upload-artifact@v4
         with:
           name: AutoWord-${{ matrix.name }}
@@ -58,6 +58,9 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
