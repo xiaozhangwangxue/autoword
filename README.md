@@ -68,9 +68,9 @@ GitHub Actions 会在每次推送和拉取请求时运行上述检查。
 
 ## 下载桌面应用
 
-在 [Releases](https://github.com/xiaozhangwangxue/autoword/releases) 页面可下载 macOS、Windows 和 Linux 的桌面包。维护者推送形如 `v1.0.0` 的标签后，GitHub Actions 会自动构建并发布这些文件。
+在 [Releases](https://github.com/xiaozhangwangxue/autoword/releases) 页面可下载 macOS、Windows、Linux 和 Android 版本。维护者推送形如 `v1.0.0` 的标签后，GitHub Actions 会自动构建并发布全部文件。
 
-Android 原生 APK 不能直接复用桌面端的 `python-docx` 运行时；它需要单独的移动端文档处理实现或受保护的服务端。该项会在 Android 构建链验证后再发布，避免提供无法处理文档的空壳应用。
+Android APK 内置 Python 文档处理引擎，文件只在设备本机处理。首次安装需要在 Android 系统中允许来自浏览器或文件管理器的安装来源；发布前应替换 GitHub Actions 的调试签名为维护者自己的发布签名。
 
 ## 贡献
 
