@@ -27,11 +27,20 @@ if not os.path.exists(UPLOAD_FOLDER):
 FILE_LIFETIME = 7 * 24 * 60 * 60
 CLEANUP_INTERVAL = 3600
 
-TRANS_TABLE = str.maketrans({
+HALF_WIDTH_TABLE = str.maketrans({
     '。': '.', '，': ',', '！': '!', '？': '?', '：': ':', '；': ';',
     '（': '(', '）': ')', '“': '"', '”': '"', '‘': "'", '’': "'",
     '【': '[', '】': ']', '、': ','
 })
+FULL_WIDTH_TABLE = str.maketrans({
+    '.': '。', ',': '，', '!': '！', '?': '？', ':': '：', ';': '；',
+    '(': '（', ')': '）', '"': '“', "'": '‘', '[': '【', ']': '】',
+})
+PAGE_PRESETS = {
+    'A4_STD': (21, 29.7, 0.5, 0.5, 1.5, 0.5, True),
+    'A4_EQUAL': (21, 29.7, 0.7, 0.7, 0.7, 0.7, False),
+    'B5': (17.6, 25, 0.7, 0.7, 0.7, 0.7, False),
+}
 
 # --- 后台清理线程 ---
 def auto_cleanup_task():
@@ -77,21 +86,61 @@ def remove_empty_paragraphs(doc):
             count += 1
     return count
 
-def process_paragraph(paragraph):
-    paragraph.paragraph_format.line_spacing = 1.0
-    paragraph.paragraph_format.space_before = Pt(0)
-    paragraph.paragraph_format.space_after = Pt(0)
+def bounded_number(form, name, default, low, high):
+    try:
+        return min(max(float(form.get(name, default)), low), high)
+    except (TypeError, ValueError):
+        return default
+
+
+def layout_settings(form):
+    preset = form.get('paper_size', 'A4_STD')
+    if preset not in PAGE_PRESETS:
+        preset = 'A4_STD'
+    width, height, top, bottom, left, right, mirror = PAGE_PRESETS[preset]
+    if form.get('custom_margins') == 'on':
+        top = bounded_number(form, 'top_margin', top, 0.1, 8)
+        bottom = bounded_number(form, 'bottom_margin', bottom, 0.1, 8)
+        left = bounded_number(form, 'left_margin', left, 0.1, 8)
+        right = bounded_number(form, 'right_margin', right, 0.1, 8)
+        mirror = False
+    return {
+        'width': width, 'height': height, 'top': top, 'bottom': bottom,
+        'left': left, 'right': right, 'mirror': mirror,
+        'font_size': bounded_number(form, 'font_size', 10.5, 6, 72),
+        'line_spacing': bounded_number(form, 'line_spacing', 1, 0.5, 5),
+        'space_before': bounded_number(form, 'space_before', 0, 0, 72),
+        'space_after': bounded_number(form, 'space_after', 0, 0, 72),
+        'punctuation': form.get('punctuation', 'halfwidth'),
+        'remove_empty': form.get('remove_empty') == 'on',
+        'footer_mode': form.get('footer_mode', 'first_line'),
+        'footer_text': form.get('footer_text', '').strip()[:120],
+    }
+
+
+def convert_punctuation(text, mode):
+    if mode == 'halfwidth':
+        return text.translate(HALF_WIDTH_TABLE)
+    if mode == 'fullwidth':
+        return text.translate(FULL_WIDTH_TABLE)
+    return text
+
+
+def process_paragraph(paragraph, settings):
+    paragraph.paragraph_format.line_spacing = settings['line_spacing']
+    paragraph.paragraph_format.space_before = Pt(settings['space_before'])
+    paragraph.paragraph_format.space_after = Pt(settings['space_after'])
     for run in paragraph.runs:
         if run.element.xpath('.//w:drawing') or run.element.xpath('.//w:pict'):
             continue
         if run.text:
-            text = run.text.translate(TRANS_TABLE)
+            text = convert_punctuation(run.text, settings['punctuation'])
             while '\n\n' in text: text = text.replace('\n\n', '\n')
             while '\r\n\r\n' in text: text = text.replace('\r\n\r\n', '\r\n')
             run.text = text
-        run.font.size = Pt(10.5)
+        run.font.size = Pt(settings['font_size'])
 
-def process_single_file_task(filepath, paper_size, job_id, filename):
+def process_single_file_task(filepath, settings, job_id, filename):
     try:
         yield json.dumps({"status": "log", "msg": f"正在读取: {filename}..."}) + "\n"
         doc = Document(filepath)
@@ -100,48 +149,43 @@ def process_single_file_task(filepath, paper_size, job_id, filename):
         try:
             if len(doc.paragraphs) > 0:
                 raw = doc.paragraphs[0].text.strip()
-                first_line_text = raw.translate(TRANS_TABLE) if raw else ""
+                first_line_text = convert_punctuation(raw, settings['punctuation']) if raw else ""
         except: pass
 
-        yield json.dumps({"status": "log", "msg": f"  ↳ 智能去空行..."}) + "\n"
-        remove_empty_paragraphs(doc)
+        if settings['remove_empty']:
+            yield json.dumps({"status": "log", "msg": f"  ↳ 移除空段落..."}) + "\n"
+            remove_empty_paragraphs(doc)
 
         yield json.dumps({"status": "log", "msg": f"  ↳ 标准化排版..."}) + "\n"
-        for p in doc.paragraphs: process_paragraph(p)
+        for p in doc.paragraphs: process_paragraph(p, settings)
         for t in doc.tables:
             for r in t.rows:
                 for c in r.cells:
-                    for p in c.paragraphs: process_paragraph(p)
+                    for p in c.paragraphs: process_paragraph(p, settings)
 
         yield json.dumps({"status": "log", "msg": f"  ↳ 应用页面设置..."}) + "\n"
         for section in doc.sections:
             section.header_distance = Cm(0)
             section.footer_distance = Cm(0.7)
-            if paper_size == 'A4_STD':
-                section.page_width = Cm(21); section.page_height = Cm(29.7)
-                section.mirror_margins = True
-                section.top_margin = Cm(0.5); section.bottom_margin = Cm(0.5)
-                section.left_margin = Cm(1.5); section.right_margin = Cm(0.5)
-            elif paper_size == 'A4_EQUAL':
-                section.page_width = Cm(21); section.page_height = Cm(29.7)
-                section.mirror_margins = False
-                section.top_margin = Cm(0.7); section.bottom_margin = Cm(0.7)
-                section.left_margin = Cm(0.7); section.right_margin = Cm(0.7)
-            elif paper_size == 'B5':
-                section.page_width = Cm(17.6); section.page_height = Cm(25)
-                section.mirror_margins = False
-                section.top_margin = Cm(0.7); section.bottom_margin = Cm(0.7)
-                section.left_margin = Cm(0.7); section.right_margin = Cm(0.7)
+            section.page_width = Cm(settings['width']); section.page_height = Cm(settings['height'])
+            section.mirror_margins = settings['mirror']
+            section.top_margin = Cm(settings['top']); section.bottom_margin = Cm(settings['bottom'])
+            section.left_margin = Cm(settings['left']); section.right_margin = Cm(settings['right'])
 
             section.header.is_linked_to_previous = False
             section.footer.is_linked_to_previous = False
             for p in section.header.paragraphs: p.text = ""
             for p in section.footer.paragraphs: p.text = ""
-            footer_para = section.footer.paragraphs[0]
-            footer_para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            run_text = footer_para.add_run(first_line_text + "  -  ")
-            run_text.font.size = Pt(9)
-            create_page_number_field(footer_para.add_run())
+            if settings['footer_mode'] != 'none':
+                footer_para = section.footer.paragraphs[0]
+                footer_para.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+                footer = settings['footer_text'] or first_line_text
+                if settings['footer_mode'] == 'page_number':
+                    footer = ''
+                if footer:
+                    run_text = footer_para.add_run(footer + "  -  ")
+                    run_text.font.size = Pt(9)
+                create_page_number_field(footer_para.add_run())
 
         yield json.dumps({"status": "log", "msg": f"  ↳ 完成！"}) + "\n"
         out_stream = io.BytesIO()
@@ -216,7 +260,7 @@ def index():
             }
 
             /* 大触控区域优化 */
-            select, input[type=file] {
+            select, input[type=file], input[type=number], input[type=text] {
                 width: 100%;
                 padding: 14px;
                 margin-bottom: 20px;
@@ -265,11 +309,16 @@ def index():
             }
             .log-line { margin: 0; border-bottom: 1px solid #2c2c2e; padding: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             .log-line.error { color: #ff453a; }
+            .options { display:grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+            .options label { font-size: 13px; margin-bottom: 4px; }
+            .options input, .options select { margin-bottom: 12px; padding: 10px; }
+            .full { grid-column: 1 / -1; }
+            .check { display:flex; align-items:center; gap:8px; margin: 4px 0 14px; font-size:14px; }
         </style>
     </head>
     <body>
         <div class="card">
-            <h2>排版工厂 <span class="badge">v16.0 移动版</span></h2>
+            <h2>排版工厂 <span class="badge">v17.0</span></h2>
 
             <form id="uploadForm">
                 <label>1. 纸张规格</label>
@@ -279,7 +328,28 @@ def index():
                     <option value="B5">B5 小册子 (四边0.7)</option>
                 </select>
 
-                <label>2. 选择文件 (多选)</label>
+                <label>2. 排版规则</label>
+                <div class="options">
+                    <label>字体大小（pt）<input type="number" name="font_size" min="6" max="72" step="0.5" value="10.5"></label>
+                    <label>行间距（倍）<input type="number" name="line_spacing" min="0.5" max="5" step="0.05" value="1"></label>
+                    <label>段前（pt）<input type="number" name="space_before" min="0" max="72" step="0.5" value="0"></label>
+                    <label>段后（pt）<input type="number" name="space_after" min="0" max="72" step="0.5" value="0"></label>
+                    <label class="full">标点转换
+                        <select name="punctuation"><option value="halfwidth">转半角（默认）</option><option value="fullwidth">转全角</option><option value="preserve">保留原样</option></select>
+                    </label>
+                    <label class="full check"><input type="checkbox" name="remove_empty" checked> 移除没有文字或图片的空段落</label>
+                    <label class="full check"><input type="checkbox" name="custom_margins"> 使用自定义边距（cm）</label>
+                    <label>上<input type="number" name="top_margin" min="0.1" max="8" step="0.1" value="0.7"></label>
+                    <label>下<input type="number" name="bottom_margin" min="0.1" max="8" step="0.1" value="0.7"></label>
+                    <label>左<input type="number" name="left_margin" min="0.1" max="8" step="0.1" value="0.7"></label>
+                    <label>右<input type="number" name="right_margin" min="0.1" max="8" step="0.1" value="0.7"></label>
+                    <label class="full">页脚
+                        <select name="footer_mode"><option value="first_line">首段文字 + 页码</option><option value="page_number">仅页码</option><option value="none">不添加页脚</option></select>
+                    </label>
+                    <label class="full">自定义页脚文字（留空时使用首段）<input type="text" name="footer_text" maxlength="120" placeholder="例如：课程作业"></label>
+                </div>
+
+                <label>3. 选择文件 (多选)</label>
                 <input type="file" id="fileInput" name="file" multiple accept=".docx" required>
 
                 <button type="submit" id="startBtn">🚀 开始转换</button>
@@ -388,7 +458,7 @@ def index():
 @app.route('/process_stream', methods=['POST'])
 def process_stream():
     uploaded_files = request.files.getlist('file')
-    paper_size = request.form.get('paper_size', 'A4_STD')
+    settings = layout_settings(request.form)
 
     valid_files = [f for f in uploaded_files if f.filename and f.filename.lower().endswith('.docx')]
 
@@ -418,7 +488,7 @@ def process_stream():
         for i, (path, filename) in enumerate(local_paths):
             yield json.dumps({"status": "progress", "val": i / total, "msg": f"处理 {i+1}/{total}"}) + "\n"
 
-            gen = process_single_file_task(path, paper_size, job_id, filename)
+            gen = process_single_file_task(path, settings, job_id, filename)
 
             file_data = None
             file_name = None

@@ -5,6 +5,9 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+build/
+dist/
+*.spec
 
 # Virtual environments and local configuration
 .venv/
