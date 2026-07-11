@@ -1,5 +1,7 @@
 # AutoWord 排版工厂
 
+[English](README.en.md)
+
 一个面向 `.docx` 文档的轻量级 Web 排版工具。上传一个或多个 Word 文件，选择纸张方案，即可批量生成统一排版后的压缩包。
 
 > 当前界面名称为「排版工厂」。本项目不连接第三方服务，所有文档均在运行该服务的机器上处理。
@@ -56,7 +58,7 @@ MAX_UPLOAD_SIZE=$((200 * 1024 * 1024)) gunicorn --workers 2 --bind 127.0.0.1:808
 - 本项目不提供用户登录或访问控制，**不应直接暴露到公网**；公网部署请置于受保护的反向代理之后。
 - 仅上传你有权处理的文档，尤其注意其中可能包含的个人信息或保密内容。
 
-更多安全问题请参阅 [SECURITY.md](SECURITY.md)。
+更多安全问题请参阅 [SECURITY.md](SECURITY.md)（[English](SECURITY.en.md)）。
 
 ## 开发与测试
 
@@ -74,7 +76,7 @@ Android APK 内置 Python 文档处理引擎，文件只在设备本机处理。
 
 ## 贡献
 
-欢迎提交 issue 和 pull request。提交前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
+欢迎提交 issue 和 pull request。提交前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)（[English](CONTRIBUTING.en.md)）。
 
 ## 许可证
 

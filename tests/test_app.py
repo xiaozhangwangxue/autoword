@@ -14,6 +14,7 @@ class AppTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('排版工厂', response.get_data(as_text=True))
+        self.assertIn('AutoWord Formatter', response.get_data(as_text=True))
 
     def test_process_rejects_non_docx_uploads(self):
         response = self.client.post(
@@ -35,6 +36,9 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(settings['font_size'], 6)
         self.assertEqual(settings['line_spacing'], 1.5)
         self.assertEqual(settings['punctuation'], 'fullwidth')
+
+    def test_language_is_preserved_in_layout_settings(self):
+        self.assertEqual(layout_settings({'language': 'en'})['language'], 'en')
 
     def test_paragraph_formatting_and_punctuation_modes(self):
         document = Document()

@@ -115,6 +115,7 @@ def layout_settings(form):
         'remove_empty': form.get('remove_empty') == 'on',
         'footer_mode': form.get('footer_mode', 'first_line'),
         'footer_text': form.get('footer_text', '').strip()[:120],
+        'language': form.get('language', 'zh'),
     }
 
 
@@ -124,6 +125,10 @@ def convert_punctuation(text, mode):
     if mode == 'fullwidth':
         return text.translate(FULL_WIDTH_TABLE)
     return text
+
+
+def localized(settings, zh, en):
+    return en if settings.get('language') == 'en' else zh
 
 
 def process_paragraph(paragraph, settings):
@@ -142,7 +147,7 @@ def process_paragraph(paragraph, settings):
 
 def process_single_file_task(filepath, settings, job_id, filename):
     try:
-        yield json.dumps({"status": "log", "msg": f"正在读取: {filename}..."}) + "\n"
+        yield json.dumps({"status": "log", "msg": localized(settings, f"正在读取: {filename}...", f"Reading: {filename}...")}) + "\n"
         doc = Document(filepath)
 
         first_line_text = ""
@@ -153,17 +158,17 @@ def process_single_file_task(filepath, settings, job_id, filename):
         except: pass
 
         if settings['remove_empty']:
-            yield json.dumps({"status": "log", "msg": f"  ↳ 移除空段落..."}) + "\n"
+            yield json.dumps({"status": "log", "msg": localized(settings, "  ↳ 移除空段落...", "  ↳ Removing empty paragraphs...")}) + "\n"
             remove_empty_paragraphs(doc)
 
-        yield json.dumps({"status": "log", "msg": f"  ↳ 标准化排版..."}) + "\n"
+        yield json.dumps({"status": "log", "msg": localized(settings, "  ↳ 标准化排版...", "  ↳ Applying text formatting...")}) + "\n"
         for p in doc.paragraphs: process_paragraph(p, settings)
         for t in doc.tables:
             for r in t.rows:
                 for c in r.cells:
                     for p in c.paragraphs: process_paragraph(p, settings)
 
-        yield json.dumps({"status": "log", "msg": f"  ↳ 应用页面设置..."}) + "\n"
+        yield json.dumps({"status": "log", "msg": localized(settings, "  ↳ 应用页面设置...", "  ↳ Applying page settings...")}) + "\n"
         for section in doc.sections:
             section.header_distance = Cm(0)
             section.footer_distance = Cm(0.7)
@@ -187,7 +192,7 @@ def process_single_file_task(filepath, settings, job_id, filename):
                     run_text.font.size = Pt(9)
                 create_page_number_field(footer_para.add_run())
 
-        yield json.dumps({"status": "log", "msg": f"  ↳ 完成！"}) + "\n"
+        yield json.dumps({"status": "log", "msg": localized(settings, "  ↳ 完成！", "  ↳ Done!")}) + "\n"
         out_stream = io.BytesIO()
         doc.save(out_stream)
         out_stream.seek(0)
@@ -197,7 +202,7 @@ def process_single_file_task(filepath, settings, job_id, filename):
         yield {"filename": new_name, "data": out_stream.getvalue()}
 
     except Exception as e:
-        yield json.dumps({"status": "error", "msg": f"❌ 失败: {filename}"}) + "\n"
+        yield json.dumps({"status": "error", "msg": localized(settings, f"❌ 失败: {filename}", f"❌ Failed: {filename}")}) + "\n"
         yield None
 
 @app.route('/', methods=['GET'])
@@ -314,21 +319,24 @@ def index():
             .options input, .options select { margin-bottom: 12px; padding: 10px; }
             .full { grid-column: 1 / -1; }
             .check { display:flex; align-items:center; gap:8px; margin: 4px 0 14px; font-size:14px; }
+            .titlebar { display:flex; justify-content:space-between; align-items:start; gap:12px; }
+            .language { width:auto; padding:8px 11px; font-size:13px; box-shadow:none; white-space:nowrap; }
         </style>
     </head>
     <body>
         <div class="card">
-            <h2>排版工厂 <span class="badge">v17.0</span></h2>
+            <div class="titlebar"><h2 id="appTitle">排版工厂 <span class="badge">v17.0</span></h2><button class="language" type="button" id="languageToggle">English</button></div>
 
             <form id="uploadForm">
-                <label>1. 纸张规格</label>
+                <input type="hidden" name="language" id="languageInput" value="zh">
+                <label id="paperLabel">1. 纸张规格</label>
                 <select id="paperSize" name="paper_size">
                     <option value="A4_STD">A4 标准 (内1.5 / 外0.5)</option>
                     <option value="A4_EQUAL">A4 等宽 (四边0.7) ✨</option>
                     <option value="B5">B5 小册子 (四边0.7)</option>
                 </select>
 
-                <label>2. 排版规则</label>
+                <label id="layoutLabel">2. 排版规则</label>
                 <div class="options">
                     <label>字体大小（pt）<input type="number" name="font_size" min="6" max="72" step="0.5" value="10.5"></label>
                     <label>行间距（倍）<input type="number" name="line_spacing" min="0.5" max="5" step="0.05" value="1"></label>
@@ -349,7 +357,7 @@ def index():
                     <label class="full">自定义页脚文字（留空时使用首段）<input type="text" name="footer_text" maxlength="120" placeholder="例如：课程作业"></label>
                 </div>
 
-                <label>3. 选择文件 (多选)</label>
+                <label id="fileLabel">3. 选择文件 (多选)</label>
                 <input type="file" id="fileInput" name="file" multiple accept=".docx" required>
 
                 <button type="submit" id="startBtn">🚀 开始转换</button>
@@ -375,23 +383,46 @@ def index():
             const progressFill = document.getElementById('progressFill');
             const progressText = document.getElementById('progressText');
             const percentText = document.getElementById('percentText');
+            const languageInput = document.getElementById('languageInput');
+            const languageToggle = document.getElementById('languageToggle');
+            const translations = {
+                zh: { title:'排版工厂', paper:'1. 纸张规格', layout:'2. 排版规则', files:'3. 选择文件（多选）', start:'🚀 开始转换', font:'字体大小（pt）', spacing:'行间距（倍）', before:'段前（pt）', after:'段后（pt）', punctuation:'标点转换', remove:' 移除没有文字或图片的空段落', margins:' 使用自定义边距（cm）', top:'上', bottom:'下', left:'左', right:'右', footer:'页脚', customFooter:'自定义页脚文字（留空时使用首段）', half:'转半角（默认）', full:'转全角', preserve:'保留原样', first:'首段文字 + 页码', page:'仅页码', none:'不添加页脚', placeholder:'例如：课程作业', selectFiles:'请先选择文件！', processing:'处理中...', connect:'连接服务器...', connection:'连接失败', downloading:'✅ 完成，正在下载...', complete:'转换完成', retry:'重试', ready:'准备中...', toggle:'English' },
+                en: { title:'AutoWord Formatter', paper:'1. Paper size', layout:'2. Formatting rules', files:'3. Select files (multiple)', start:'🚀 Start formatting', font:'Font size (pt)', spacing:'Line spacing', before:'Space before (pt)', after:'Space after (pt)', punctuation:'Punctuation', remove:' Remove empty paragraphs without text or images', margins:' Use custom margins (cm)', top:'Top', bottom:'Bottom', left:'Left', right:'Right', footer:'Footer', customFooter:'Custom footer (uses first paragraph when blank)', half:'Convert to half-width (default)', full:'Convert to full-width', preserve:'Keep unchanged', first:'First paragraph + page number', page:'Page number only', none:'No footer', placeholder:'For example: Course assignment', selectFiles:'Select at least one file first.', processing:'Processing...', connect:'Connecting to local service...', connection:'Connection failed', downloading:'✅ Done. Downloading...', complete:'Formatting complete', retry:'Retry', ready:'Preparing...', toggle:'中文' }
+            };
+            let language = localStorage.getItem('autoword-language') || 'zh';
+            const labelText = (name, value) => document.querySelector(`[name="${name}"]`).parentElement.childNodes[0].nodeValue = value;
+            function setLanguage(next) {
+                language = next; localStorage.setItem('autoword-language', language); languageInput.value = language;
+                const t = translations[language]; document.documentElement.lang = language === 'en' ? 'en' : 'zh-CN'; document.title = t.title;
+                document.getElementById('appTitle').childNodes[0].nodeValue = t.title + ' ';
+                document.getElementById('paperLabel').textContent = t.paper; document.getElementById('layoutLabel').textContent = t.layout; document.getElementById('fileLabel').textContent = t.files;
+                labelText('font_size', t.font); labelText('line_spacing', t.spacing); labelText('space_before', t.before); labelText('space_after', t.after); labelText('top_margin', t.top); labelText('bottom_margin', t.bottom); labelText('left_margin', t.left); labelText('right_margin', t.right); labelText('footer_text', t.customFooter);
+                document.querySelector('[name="punctuation"]').parentElement.childNodes[0].nodeValue = t.punctuation; document.querySelector('[name="footer_mode"]').parentElement.childNodes[0].nodeValue = t.footer;
+                document.querySelector('[name="remove_empty"]').parentElement.childNodes[1].nodeValue = t.remove; document.querySelector('[name="custom_margins"]').parentElement.childNodes[1].nodeValue = t.margins;
+                const punct = document.querySelector('[name="punctuation"]').options; [punct[0].text, punct[1].text, punct[2].text] = [t.half, t.full, t.preserve];
+                const footer = document.querySelector('[name="footer_mode"]').options; [footer[0].text, footer[1].text, footer[2].text] = [t.first, t.page, t.none];
+                document.querySelector('[name="footer_text"]').placeholder = t.placeholder; if (!startBtn.disabled) startBtn.textContent = t.start; progressText.textContent = t.ready; languageToggle.textContent = t.toggle;
+            }
+            languageToggle.addEventListener('click', () => setLanguage(language === 'zh' ? 'en' : 'zh'));
+            setLanguage(language);
 
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
 
                 const files = document.getElementById('fileInput').files;
-                if (files.length === 0) { alert("请先选择文件！"); return; }
+                const t = translations[language];
+                if (files.length === 0) { alert(t.selectFiles); return; }
 
                 startBtn.disabled = true;
-                startBtn.textContent = "处理中...";
+                startBtn.textContent = t.processing;
                 progressPanel.style.display = 'block';
-                logBox.innerHTML = '<div class="log-line">> 连接服务器...</div>';
+                logBox.innerHTML = '<div class="log-line">> ' + t.connect + '</div>';
 
                 const formData = new FormData(form);
 
                 try {
                     const response = await fetch('/process_stream', { method: 'POST', body: formData });
-                    if (!response.ok) throw new Error("连接失败");
+                    if (!response.ok) throw new Error(t.connection);
 
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
@@ -427,12 +458,12 @@ def index():
                                     const div = document.createElement('div');
                                     div.className = 'log-line';
                                     div.style.color = '#34c759';
-                                    div.textContent = "> ✅ 完成，正在下载...";
+                                    div.textContent = "> " + t.downloading;
                                     logBox.appendChild(div);
 
                                     window.location.href = "/download/" + data.job_id;
 
-                                    startBtn.textContent = "转换完成";
+                                    startBtn.textContent = t.complete;
                                     startBtn.style.backgroundColor = "#34c759";
                                 }
                                 else if (data.status === 'error') {
@@ -447,7 +478,7 @@ def index():
                 } catch (error) {
                     alert("错误: " + error.message);
                     startBtn.disabled = false;
-                    startBtn.textContent = "重试";
+                    startBtn.textContent = t.retry;
                 }
             });
         </script>
