@@ -31,7 +31,14 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install -r requirements-build.txt
-      - name: Package application
+      - name: Package macOS application
+        if: matrix.name == 'macos'
+        run: pyinstaller --noconfirm --clean --windowed --onedir --name AutoWord --icon assets/icons/AutoWord.icns desktop.py
+      - name: Package Windows application
+        if: matrix.name == 'windows'
+        run: pyinstaller --noconfirm --clean --windowed --onedir --name AutoWord --icon assets/icons/AutoWord.ico desktop.py
+      - name: Package Linux application
+        if: matrix.name == 'linux'
         run: pyinstaller --noconfirm --clean --windowed --onedir --name AutoWord desktop.py
       - name: Archive application (Unix)
         if: runner.os != 'Windows'

@@ -4,11 +4,16 @@ import android.content.*;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.text.InputType;
 import android.view.*;
 import android.widget.*;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import com.chaquo.python.android.AndroidPlatform;
 import com.chaquo.python.Python;
 import org.json.JSONObject;
 import java.io.*;
@@ -24,23 +29,39 @@ public class MainActivity extends AppCompatActivity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(36, 36, 36, 36);
+        if (!Python.isStarted()) Python.start(new AndroidPlatform(getApplicationContext()));
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
+        scroll.addView(root);
+        final int padding = dp(18);
+        ViewCompat.setOnApplyWindowInsetsListener(scroll, (view, insets) -> {
+            Insets safe = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            view.setPadding(padding + safe.left, padding + safe.top, padding + safe.right, padding + safe.bottom);
+            return insets;
+        });
         TextView title = new TextView(this); title.setText("AutoWord 离线排版"); title.setTextSize(24); root.addView(title);
         root.addView(label("所有文件只在本机处理，不会上传网络。"));
         Button choose = new Button(this); choose.setText("选择 DOCX 文件"); root.addView(choose);
-        font = input("正文大小（pt）", "10.5"); root.addView(font);
-        spacing = input("行间距（倍）", "1.0"); root.addView(spacing);
+        font = inputRow(root, "正文大小（pt）", "10.5");
+        spacing = inputRow(root, "行间距（倍）", "1.0");
         punctuation = new Spinner(this); punctuation.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{"转半角", "转全角", "保留标点"})); root.addView(punctuation);
         removeEmpty = new CheckBox(this); removeEmpty.setText("移除空段落"); removeEmpty.setChecked(true); root.addView(removeEmpty);
         Button process = new Button(this); process.setText("开始处理并保存到下载目录"); root.addView(process);
-        status = label("尚未选择文件"); root.addView(status); setContentView(root);
+        status = label("尚未选择文件"); root.addView(status); setContentView(scroll);
+        ViewCompat.requestApplyInsets(scroll);
         picker = registerForActivityResult(new ActivityResultContracts.OpenMultipleDocuments(), uris -> { files.clear(); files.addAll(uris); status.setText("已选择 " + files.size() + " 个文件"); });
         choose.setOnClickListener(v -> picker.launch(new String[]{"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}));
         process.setOnClickListener(v -> process());
     }
 
-    private TextView label(String value) { TextView v = new TextView(this); v.setText(value); v.setPadding(0, 18, 0, 8); return v; }
-    private EditText input(String hint, String value) { EditText v = new EditText(this); v.setHint(hint); v.setInputType(2 | 8192); v.setText(value); return v; }
+    private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
+    private TextView label(String value) { TextView v = new TextView(this); v.setText(value); v.setPadding(0, dp(12), 0, dp(6)); return v; }
+    private EditText inputRow(LinearLayout parent, String name, String value) {
+        LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(0, dp(4), 0, dp(4));
+        TextView label = new TextView(this); label.setText(name); label.setTextSize(15); row.addView(label, new LinearLayout.LayoutParams(dp(118), ViewGroup.LayoutParams.WRAP_CONTENT));
+        EditText field = new EditText(this); field.setSingleLine(true); field.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL); field.setText(value);
+        row.addView(field, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1)); parent.addView(row); return field;
+    }
 
     private void process() {
         if (files.isEmpty()) { status.setText("请先选择 DOCX 文件"); return; }

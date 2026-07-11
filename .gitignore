@@ -9,6 +9,9 @@ build/
 dist/
 *.spec
 android/.gradle/
+assets/icons/icon-chroma.png
+assets/icons/icon-master.png
+assets/icons/AutoWord.iconset/
 
 # Virtual environments and local configuration
 .venv/

@@ -81,3 +81,11 @@ Android APK 内置 Python 文档处理引擎，文件只在设备本机处理。
 ## 许可证
 
 本项目基于 [MIT License](LICENSE) 开源。
+
+## 捐款支持
+
+如果 AutoWord 对你有帮助，欢迎使用下方二维码捐款支持项目维护；完全自愿，感谢你的支持。
+
+| 微信支付 | 支付宝 |
+| --- | --- |
+| <img src="assets/donate/wechat.png" alt="微信支付收款码" width="300"> | <img src="assets/donate/alipay.jpg" alt="支付宝收款码" width="300"> |

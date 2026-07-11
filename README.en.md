@@ -46,3 +46,11 @@ python -m unittest discover -s tests -v
 ```
 
 See [CONTRIBUTING.en.md](CONTRIBUTING.en.md) for contribution guidance. This project is licensed under the [MIT License](LICENSE).
+
+## Support the project
+
+If AutoWord is useful to you, you may support its maintenance with either QR code below. Donations are entirely optional — thank you for your support.
+
+| WeChat Pay | Alipay |
+| --- | --- |
+| <img src="assets/donate/wechat.png" alt="WeChat Pay QR code" width="300"> | <img src="assets/donate/alipay.jpg" alt="Alipay QR code" width="300"> |
