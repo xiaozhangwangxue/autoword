@@ -67,9 +67,16 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
+      - name: Restore stable Android signing key
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/release.keystore
       - name: Build offline APK
-        run: gradle -p android :app:assembleDebug
-      - run: cp android/app/build/outputs/apk/debug/app-debug.apk AutoWord-android.apk
+        run: gradle -p android :app:assembleRelease
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/android/release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      - run: cp android/app/build/outputs/apk/release/app-release.apk AutoWord-android.apk
       - uses: actions/upload-artifact@v4
         with:
           name: AutoWord-android
