@@ -59,6 +59,8 @@ class AppTestCase(unittest.TestCase):
         self.assertIn("startBtn.style.backgroundColor = ''", html)
         self.assertIn("window.pywebview.api.export_job", html)
         self.assertIn('id="exportDirectory"', html)
+        self.assertIn('id="startupSplash"', html)
+        self.assertIn("document.body.classList.add('app-ready')", html)
 
     def test_custom_layout_settings_are_bounded(self):
         settings = layout_settings({

@@ -267,6 +267,16 @@ def index():
             }
             .card::before { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(120deg,rgba(255,255,255,.42),transparent 32%,rgba(255,255,255,.12) 70%,transparent); }
             .card > * { position:relative; z-index:1; }
+            .app-content { opacity:0; transform:translateY(10px) scale(.992); transition:opacity .55s ease, transform .7s cubic-bezier(.2,.8,.2,1); }
+            body.app-ready .app-content { opacity:1; transform:none; }
+            .startup-splash { position:fixed; inset:0; z-index:9999; display:grid; place-items:center; background:radial-gradient(circle at 50% 38%,rgba(126,190,255,.5),transparent 35%),linear-gradient(145deg,#d9eeff,#f3efff 54%,#d9eaff); transition:opacity .55s ease, visibility .55s ease; }
+            body.app-ready .startup-splash { opacity:0; visibility:hidden; pointer-events:none; }
+            .splash-glass { width:220px; padding:28px 26px 24px; text-align:center; border:1px solid rgba(255,255,255,.9); border-radius:34px; background:linear-gradient(145deg,rgba(255,255,255,.72),rgba(255,255,255,.36)); box-shadow:0 30px 90px rgba(46,91,150,.24),inset 0 1px 0 white; backdrop-filter:blur(32px) saturate(175%); -webkit-backdrop-filter:blur(32px) saturate(175%); animation:splashFloat 2.2s ease-in-out infinite; }
+            .splash-icon { width:84px; height:84px; margin:0 auto 16px; display:grid; place-items:center; border-radius:25px; color:white; background:linear-gradient(145deg,#43a9ff,#075ee9 65%,#1243a8); box-shadow:0 18px 35px rgba(0,91,211,.34),inset 0 1px 0 rgba(255,255,255,.65); font-size:38px; font-weight:900; letter-spacing:-.08em; }
+            .splash-glass h1 { margin:0; font-size:24px; letter-spacing:-.04em; }.splash-glass p { margin:5px 0 17px; color:#55708e; font-size:13px; }
+            .splash-track { height:5px; overflow:hidden; border-radius:99px; background:rgba(56,104,164,.12); }.splash-track i { display:block; width:48%; height:100%; border-radius:inherit; background:linear-gradient(90deg,transparent,#1686ff,transparent); animation:splashLoad 1.15s ease-in-out infinite; }
+            @keyframes splashLoad { from { transform:translateX(-110%); } to { transform:translateX(220%); } }
+            @keyframes splashFloat { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-5px); } }
 
             h2 {
                 margin-top: 0;
@@ -360,11 +370,15 @@ def index():
             #resultList { margin:0 0 10px; padding-left:20px; font-size:13px; }
             #openFolderButton { width:auto; padding:9px 12px; font-size:13px; box-shadow:none; background:rgba(0,113,227,.9); }
             @media (max-width: 620px) { body { padding: max(42px, env(safe-area-inset-top)) 0 20px; } .card { border-radius:22px; padding:20px; } }
+            @media (prefers-reduced-motion: reduce) { .startup-splash,.app-content { transition-duration:.15s; }.splash-glass,.splash-track i { animation:none; } }
         </style>
     </head>
     <body>
-        <div class="card">
-            <div class="titlebar"><h2 id="appTitle">排版工厂 <span class="badge">v17.0</span></h2><div><button class="github" type="button" id="githubButton">GitHub</button> <button class="language" type="button" id="languageToggle">English</button></div></div>
+        <div class="startup-splash" id="startupSplash" aria-label="AutoWord 正在启动">
+            <div class="splash-glass"><div class="splash-icon">A✎</div><h1>AutoWord</h1><p>正在准备本机排版引擎…</p><div class="splash-track"><i></i></div></div>
+        </div>
+        <div class="card app-content">
+            <div class="titlebar"><h2 id="appTitle">排版工厂 <span class="badge">v1.0.12</span></h2><div><button class="github" type="button" id="githubButton">GitHub</button> <button class="language" type="button" id="languageToggle">English</button></div></div>
 
             <form id="uploadForm">
                 <input type="hidden" name="language" id="languageInput" value="zh">
@@ -445,6 +459,10 @@ def index():
             const resultDirectory = document.getElementById('resultDirectory');
             const resultList = document.getElementById('resultList');
             const openFolderButton = document.getElementById('openFolderButton');
+            const showApplication = () => document.body.classList.add('app-ready');
+            let nativeBridgeReady = false;
+            window.addEventListener('pywebviewready', () => { nativeBridgeReady = true; window.setTimeout(showApplication, 350); });
+            window.setTimeout(() => { if (!nativeBridgeReady) showApplication(); }, 1100);
             const translations = {
                 zh: { title:'排版工厂', paper:'1. 纸张规格', layout:'2. 排版规则', files:'3. 选择文件（多选）', start:'🚀 开始转换', font:'字体大小（pt）', spacing:'行间距（倍）', before:'段前（pt）', after:'段后（pt）', punctuation:'标点转换', remove:' 移除没有文字或图片的空段落', margins:' 使用自定义边距（cm）', marginPreset:'页边距预设', top:'上', bottom:'下', left:'左', right:'右', footer:'页脚', customFooter:'自定义页脚文字（留空时使用首段）', half:'转半角（默认）', full:'转全角', preserve:'保留原样', first:'首段文字 + 页码', page:'仅页码', none:'不添加页脚', paperPreset:'跟随纸张方案', all05:'四边都是 0.5 cm', all07:'四边都是 0.7 cm', symmetric:'对称页：内 1.5 cm，外/上下 0.7 cm', placeholder:'例如：课程作业', selectFiles:'请先选择文件！', processing:'处理中...', connect:'连接服务器...', connection:'连接失败', downloading:'✅ 完成，正在下载...', complete:'转换完成', retry:'重试', ready:'准备中...', toggle:'English', github:'GitHub' },
                 en: { title:'AutoWord Formatter', paper:'1. Paper size', layout:'2. Formatting rules', files:'3. Select files (multiple)', start:'🚀 Start formatting', font:'Font size (pt)', spacing:'Line spacing', before:'Space before (pt)', after:'Space after (pt)', punctuation:'Punctuation', remove:' Remove empty paragraphs without text or images', margins:' Use custom margins (cm)', marginPreset:'Margin preset', top:'Top', bottom:'Bottom', left:'Left', right:'Right', footer:'Footer', customFooter:'Custom footer (uses first paragraph when blank)', half:'Convert to half-width (default)', full:'Convert to full-width', preserve:'Keep unchanged', first:'First paragraph + page number', page:'Page number only', none:'No footer', paperPreset:'Use paper preset', all05:'0.5 cm on all sides', all07:'0.7 cm on all sides', symmetric:'Mirrored: 1.5 cm inner, 0.7 cm outer/top/bottom', placeholder:'For example: Course assignment', selectFiles:'Select at least one file first.', processing:'Processing...', connect:'Connecting to local service...', connection:'Connection failed', downloading:'✅ Done. Downloading...', complete:'Formatting complete', retry:'Retry', ready:'Preparing...', toggle:'中文', github:'GitHub' }
