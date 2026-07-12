@@ -2,6 +2,7 @@ package com.xiaozhangwangxue.autoword;
 
 import android.content.*;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -17,6 +18,10 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import com.chaquo.python.android.AndroidPlatform;
 import com.chaquo.python.Python;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import org.json.JSONObject;
 import java.io.*;
 import java.util.*;
@@ -34,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(state);
         if (!Python.isStarted()) Python.start(new AndroidPlatform(getApplicationContext()));
         ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true); scroll.setBackgroundColor(Color.rgb(245, 247, 252));
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
         scroll.addView(root);
         final int padding = dp(18);
@@ -42,23 +48,29 @@ public class MainActivity extends AppCompatActivity {
             view.setPadding(padding + safe.left, padding + safe.top, padding + safe.right, padding + safe.bottom);
             return insets;
         });
-        TextView title = new TextView(this); title.setText("AutoWord 离线排版"); title.setTextSize(24); root.addView(title);
-        root.addView(label("所有文件只在本机处理，不会上传网络。"));
-        Button github = new Button(this); github.setText("访问 GitHub 项目主页"); root.addView(github);
-        Button choose = new Button(this); choose.setText("选择 DOCX 文件"); root.addView(choose);
-        font = inputRow(root, "正文大小（pt）", "10.5");
-        spacing = inputRow(root, "行间距（倍）", "1.0");
-        root.addView(label("页边距（cm）"));
-        marginPreset = new Spinner(this); marginPreset.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{"自定义", "四边都是 0.5 cm", "四边都是 0.7 cm", "对称页：内 1.5 cm，外/上下 0.7 cm"})); root.addView(marginPreset);
-        topMargin = inputRow(root, "上边距", "0.7");
-        bottomMargin = inputRow(root, "下边距", "0.7");
-        leftMargin = inputRow(root, "左边距", "0.7");
-        rightMargin = inputRow(root, "右边距", "0.7");
-        punctuation = new Spinner(this); punctuation.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{"转半角", "转全角", "保留标点"})); root.addView(punctuation);
-        removeEmpty = new CheckBox(this); removeEmpty.setText("移除空段落"); removeEmpty.setChecked(true); root.addView(removeEmpty);
-        Button process = new Button(this); process.setText("开始处理并保存到下载目录"); root.addView(process);
-        status = label("尚未选择文件"); root.addView(status);
-        completedFiles = new LinearLayout(this); completedFiles.setOrientation(LinearLayout.VERTICAL); root.addView(completedFiles);
+        LinearLayout hero = addCard(root, true);
+        TextView title = new TextView(this); title.setText("AutoWord"); title.setTextColor(Color.WHITE); title.setTextSize(28); hero.addView(title);
+        TextView subtitle = new TextView(this); subtitle.setText("离线 DOCX 排版工具 · 文件不会上传网络"); subtitle.setTextColor(0xDFFFFFFF); subtitle.setTextSize(14); subtitle.setPadding(0, dp(4), 0, dp(12)); hero.addView(subtitle);
+        MaterialButton github = button("访问 GitHub 项目主页", false); hero.addView(github);
+
+        LinearLayout filesCard = addCard(root, false); filesCard.addView(sectionTitle("选择文档"));
+        MaterialButton choose = button("选择 DOCX 文件", true); filesCard.addView(choose);
+        status = label("尚未选择文件"); filesCard.addView(status);
+
+        LinearLayout textCard = addCard(root, false); textCard.addView(sectionTitle("文字与标点"));
+        font = inputRow(textCard, "正文大小（pt）", "10.5");
+        spacing = inputRow(textCard, "行间距（倍）", "1.0");
+        punctuation = new Spinner(this); punctuation.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{"转半角", "转全角", "保留标点"})); textCard.addView(punctuation);
+        removeEmpty = new CheckBox(this); removeEmpty.setText("移除空段落"); removeEmpty.setChecked(true); textCard.addView(removeEmpty);
+
+        LinearLayout marginCard = addCard(root, false); marginCard.addView(sectionTitle("页边距（cm）"));
+        marginPreset = new Spinner(this); marginPreset.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{"自定义", "四边都是 0.5 cm", "四边都是 0.7 cm", "对称页：内 1.5 cm，外/上下 0.7 cm"})); marginCard.addView(marginPreset);
+        topMargin = inputRow(marginCard, "上边距", "0.7"); bottomMargin = inputRow(marginCard, "下边距", "0.7");
+        leftMargin = inputRow(marginCard, "左边距", "0.7"); rightMargin = inputRow(marginCard, "右边距", "0.7");
+
+        LinearLayout actionCard = addCard(root, false);
+        MaterialButton process = button("开始处理并保存到下载目录", true); actionCard.addView(process);
+        completedFiles = new LinearLayout(this); completedFiles.setOrientation(LinearLayout.VERTICAL); actionCard.addView(completedFiles);
         setContentView(scroll);
         ViewCompat.requestApplyInsets(scroll);
         picker = registerForActivityResult(new ActivityResultContracts.OpenMultipleDocuments(), uris -> { files.clear(); files.addAll(uris); status.setText("已选择 " + files.size() + " 个文件"); });
@@ -77,12 +89,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
-    private TextView label(String value) { TextView v = new TextView(this); v.setText(value); v.setPadding(0, dp(12), 0, dp(6)); return v; }
+    private LinearLayout addCard(LinearLayout parent, boolean hero) {
+        MaterialCardView card = new MaterialCardView(this); card.setRadius(dp(22)); card.setCardElevation(dp(hero ? 6 : 2)); card.setCardBackgroundColor(hero ? 0xFF146CE5 : Color.WHITE);
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT); cardParams.setMargins(0, 0, 0, dp(14)); parent.addView(card, cardParams);
+        LinearLayout content = new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL); content.setPadding(dp(18), dp(16), dp(18), dp(16)); card.addView(content); return content;
+    }
+    private TextView sectionTitle(String value) { TextView v = new TextView(this); v.setText(value); v.setTextColor(0xFF172033); v.setTextSize(17); v.setPadding(0, 0, 0, dp(8)); return v; }
+    private TextView label(String value) { TextView v = new TextView(this); v.setText(value); v.setTextColor(0xFF596275); v.setTextSize(14); v.setPadding(0, dp(8), 0, dp(4)); return v; }
+    private MaterialButton button(String value, boolean primary) { MaterialButton button = new MaterialButton(this); button.setText(value); button.setCornerRadius(dp(14)); button.setAllCaps(false); if (!primary) { button.setTextColor(Color.WHITE); button.setStrokeColor(android.content.res.ColorStateList.valueOf(0x99FFFFFF)); button.setStrokeWidth(dp(1)); button.setBackgroundColor(Color.TRANSPARENT); } return button; }
     private EditText inputRow(LinearLayout parent, String name, String value) {
-        LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(0, dp(4), 0, dp(4));
-        TextView label = new TextView(this); label.setText(name); label.setTextSize(15); row.addView(label, new LinearLayout.LayoutParams(dp(118), ViewGroup.LayoutParams.WRAP_CONTENT));
-        EditText field = new EditText(this); field.setSingleLine(true); field.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL); field.setText(value);
-        row.addView(field, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1)); parent.addView(row); return field;
+        LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(0, dp(3), 0, dp(3));
+        TextView label = new TextView(this); label.setText(name); label.setTextColor(0xFF374151); label.setTextSize(14); row.addView(label, new LinearLayout.LayoutParams(dp(118), ViewGroup.LayoutParams.WRAP_CONTENT));
+        TextInputLayout container = new TextInputLayout(this); container.setBoxBackgroundMode(TextInputLayout.BOX_BACKGROUND_OUTLINE); container.setBoxStrokeColor(0xFF3B82F6);
+        TextInputEditText field = new TextInputEditText(this); field.setSingleLine(true); field.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL); field.setText(value); container.addView(field);
+        row.addView(container, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1)); parent.addView(row); return field;
     }
     private void setMargins(String top, String bottom, String left, String right) { topMargin.setText(top); bottomMargin.setText(bottom); leftMargin.setText(left); rightMargin.setText(right); }
 
