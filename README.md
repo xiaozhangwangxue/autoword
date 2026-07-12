@@ -1,5 +1,7 @@
 # AutoWord 排版工厂
 
+官方网站：[autoword.12323456.xyz](https://autoword.12323456.xyz)（提供各平台直接下载）
+
 [English](README.en.md)
 
 一个面向 `.docx` 文档的轻量级 Web 排版工具。上传一个或多个 Word 文件，选择纸张方案，即可批量生成统一排版后的压缩包。

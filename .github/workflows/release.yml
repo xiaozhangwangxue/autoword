@@ -33,13 +33,23 @@ jobs:
       - run: python -m pip install -r requirements-build.txt
       - name: Package macOS application
         if: matrix.name == 'macos'
-        run: pyinstaller --noconfirm --clean --windowed --onedir --name AutoWord --icon assets/icons/AutoWord.icns desktop.py
+        run: pyinstaller --noconfirm --clean --windowed --onedir --collect-data docx --add-data packaging/docx-parts-placeholder:docx/parts --name AutoWord --icon assets/icons/AutoWord.icns desktop.py
+      - name: Ad-hoc sign macOS application
+        if: matrix.name == 'macos'
+        run: codesign --force --deep --sign - dist/AutoWord.app
+      - name: Create drag-to-install macOS DMG
+        if: matrix.name == 'macos'
+        run: |
+          mkdir -p dmg-root
+          cp -R dist/AutoWord.app dmg-root/AutoWord.app
+          ln -s /Applications dmg-root/Applications
+          hdiutil create -volname AutoWord -srcfolder dmg-root -ov -format UDZO AutoWord-macos.dmg
       - name: Package Windows application
         if: matrix.name == 'windows'
-        run: pyinstaller --noconfirm --clean --windowed --onedir --name AutoWord --icon assets/icons/AutoWord.ico desktop.py
+        run: pyinstaller --noconfirm --clean --windowed --onedir --collect-data docx --add-data packaging/docx-parts-placeholder:docx/parts --name AutoWord --icon assets/icons/AutoWord.ico desktop.py
       - name: Package Linux application
         if: matrix.name == 'linux'
-        run: pyinstaller --noconfirm --clean --windowed --onedir --name AutoWord desktop.py
+        run: pyinstaller --noconfirm --clean --windowed --onedir --collect-data docx --add-data packaging/docx-parts-placeholder:docx/parts --name AutoWord desktop.py
       - name: Archive application (Unix)
         if: runner.os != 'Windows'
         run: cd dist && tar -czf ../AutoWord-${{ matrix.name }}.tar.gz AutoWord*

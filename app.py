@@ -213,7 +213,15 @@ def process_single_file_task(filepath, settings, job_id, filename):
         yield {"filename": new_name, "data": out_stream.getvalue()}
 
     except Exception as e:
-        yield json.dumps({"status": "error", "msg": localized(settings, f"❌ 失败: {filename}", f"❌ Failed: {filename}")}) + "\n"
+        detail = f"{type(e).__name__}: {e}"
+        yield json.dumps({
+            "status": "error",
+            "msg": localized(
+                settings,
+                f"❌ 失败: {filename}（{detail}）",
+                f"❌ Failed: {filename} ({detail})",
+            ),
+        }) + "\n"
         yield None
 
 @app.route('/', methods=['GET'])
@@ -443,6 +451,7 @@ def index():
                 logBox.innerHTML = '<div class="log-line">> ' + t.connect + '</div>';
 
                 const formData = new FormData(form);
+                let completed = false;
 
                 try {
                     const response = await fetch('/process_stream', { method: 'POST', body: formData });
@@ -479,6 +488,7 @@ def index():
                                     progressText.textContent = data.msg;
                                 }
                                 else if (data.status === 'done') {
+                                    completed = true;
                                     const div = document.createElement('div');
                                     div.className = 'log-line';
                                     div.style.color = '#34c759';
@@ -489,6 +499,12 @@ def index():
 
                                     startBtn.textContent = t.complete;
                                     startBtn.style.backgroundColor = "#34c759";
+                                    document.getElementById('fileInput').value = '';
+                                    window.setTimeout(() => {
+                                        startBtn.disabled = false;
+                                        startBtn.textContent = translations[language].start;
+                                        startBtn.style.backgroundColor = '';
+                                    }, 900);
                                 }
                                 else if (data.status === 'error') {
                                     const div = document.createElement('div');
@@ -499,10 +515,16 @@ def index():
                             } catch (err) { }
                         }
                     }
+                    if (!completed) {
+                        startBtn.disabled = false;
+                        startBtn.textContent = t.retry;
+                        startBtn.style.backgroundColor = '';
+                    }
                 } catch (error) {
                     alert("错误: " + error.message);
                     startBtn.disabled = false;
                     startBtn.textContent = t.retry;
+                    startBtn.style.backgroundColor = '';
                 }
             });
         </script>
@@ -524,21 +546,24 @@ def process_stream():
     job_dir = os.path.join(UPLOAD_FOLDER, job_id)
     os.makedirs(job_dir, exist_ok=True)
 
-    def generate():
-        total = len(valid_files)
-        processed_files = []
+    # FileStorage streams are closed by Flask after the request returns. Save
+    # every upload before creating the streaming response so packaged desktop
+    # apps do not fail midway with a closed-file 500 error.
+    local_paths = []
+    for uploaded_file in valid_files:
+        filename = os.path.basename(uploaded_file.filename.replace('\\', '/'))
+        if not filename or filename in {'.', '..'} or '\x00' in filename:
+            continue
+        path = os.path.join(job_dir, f"{len(local_paths)}_{filename}")
+        uploaded_file.save(path)
+        local_paths.append((path, filename))
 
-        local_paths = []
-        for f in valid_files:
-            # Browsers normally provide a plain filename, but never trust it as a path.
-            filename = os.path.basename(f.filename.replace('\\', '/'))
-            if not filename or filename in {'.', '..'} or '\x00' in filename:
-                continue
-            # Prefix the temporary name so files with the same browser filename
-            # never overwrite each other; keep the original name for the output.
-            path = os.path.join(job_dir, f"{len(local_paths)}_{filename}")
-            f.save(path)
-            local_paths.append((path, filename))
+    if not local_paths:
+        return Response(json.dumps({"status": "error", "msg": "❌ 无有效docx文件"}) + "\n", mimetype='application/json')
+
+    def generate():
+        total = len(local_paths)
+        processed_files = []
 
         for i, (path, filename) in enumerate(local_paths):
             yield json.dumps({"status": "progress", "val": i / total, "msg": f"处理 {i+1}/{total}"}) + "\n"
@@ -558,6 +583,13 @@ def process_stream():
                 yield json.dumps({"status": "progress", "val": (i + 0.9) / total, "msg": f"完成: {filename}"}) + "\n"
 
         yield json.dumps({"status": "log", "msg": "正在打包..."}) + "\n"
+
+        if not processed_files:
+            yield json.dumps({
+                "status": "error",
+                "msg": localized(settings, "❌ 所有文件转换失败，请查看上方错误信息", "❌ All files failed. See the error above."),
+            }) + "\n"
+            return
 
         zip_path = os.path.join(job_dir, f"result_{job_id}.zip")
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:

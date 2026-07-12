@@ -1,0 +1,1 @@
+This file preserves the docx/parts resource directory in packaged applications.

@@ -1,9 +1,9 @@
 import json
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from app import app, convert_punctuation, layout_settings, process_paragraph
-from desktop import wait_for_server
+from desktop import main
 from docx import Document
 
 
@@ -28,6 +28,36 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('无有效docx文件', json.loads(response.get_data())['msg'])
 
+    def test_process_stream_saves_upload_before_streaming(self):
+        document = Document()
+        document.add_paragraph('测试，AutoWord！')
+        source = __import__('io').BytesIO()
+        document.save(source)
+        source.seek(0)
+
+        response = self.client.post(
+            '/process_stream',
+            data={
+                'file': (source, '测试.docx'),
+                'language': 'zh',
+                'punctuation': 'halfwidth',
+            },
+            content_type='multipart/form-data',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.get_data(as_text=True)
+        self.assertNotIn('"status": "error"', body)
+        self.assertIn('"status": "done"', body)
+        self.assertIn('"val": 1.0', body)
+
+    def test_frontend_resets_button_after_completed_download(self):
+        html = self.client.get('/').get_data(as_text=True)
+
+        self.assertIn("startBtn.disabled = false", html)
+        self.assertIn("document.getElementById('fileInput').value = ''", html)
+        self.assertIn("startBtn.style.backgroundColor = ''", html)
+
     def test_custom_layout_settings_are_bounded(self):
         settings = layout_settings({
             'paper_size': 'B5', 'custom_margins': 'on', 'top_margin': '99',
@@ -48,12 +78,16 @@ class AppTestCase(unittest.TestCase):
     def test_language_is_preserved_in_layout_settings(self):
         self.assertEqual(layout_settings({'language': 'en'})['language'], 'en')
 
-    @patch('desktop.urlopen')
-    def test_desktop_launcher_waits_for_local_service(self, open_url):
-        open_url.return_value = MagicMock()
+    @patch('desktop.webview.start')
+    @patch('desktop.webview.create_window')
+    def test_desktop_launcher_embeds_backend(self, create_window, start):
+        main()
 
-        self.assertIsNone(wait_for_server('http://127.0.0.1:12345'))
-        open_url.assert_called_once_with('http://127.0.0.1:12345', timeout=0.2)
+        args, kwargs = create_window.call_args
+        self.assertEqual(args[0], 'AutoWord 排版工厂')
+        self.assertIs(args[1], app)
+        self.assertEqual(kwargs['min_size'], (760, 600))
+        start.assert_called_once_with(private_mode=True)
 
     def test_paragraph_formatting_and_punctuation_modes(self):
         document = Document()

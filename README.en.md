@@ -1,5 +1,7 @@
 # AutoWord Formatter
 
+Official website: [autoword.12323456.xyz](https://autoword.12323456.xyz) with direct downloads for every platform.
+
 [简体中文](README.md)
 
 AutoWord is a lightweight DOCX formatting tool. Select one or more Word documents, choose the rules you need, and download a ZIP file containing the formatted results.
