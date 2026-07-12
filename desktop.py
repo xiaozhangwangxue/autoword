@@ -1,6 +1,8 @@
 """Launch AutoWord in a native desktop window, with no external browser."""
 import threading
-import socket
+import time
+from urllib.error import URLError
+from urllib.request import urlopen
 
 import webview
 from werkzeug.serving import make_server
@@ -8,19 +10,24 @@ from werkzeug.serving import make_server
 from app import app
 
 
-def available_port():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind(("127.0.0.1", 0))
-        return sock.getsockname()[1]
+def wait_for_server(url):
+    for _ in range(30):
+        try:
+            with urlopen(url, timeout=0.2):
+                return
+        except URLError:
+            time.sleep(0.1)
+    raise RuntimeError("The local AutoWord service did not start.")
 
 
 def main():
-    port = available_port()
-    server = make_server("127.0.0.1", port, app)
+    server = make_server("127.0.0.1", 0, app)
+    url = f"http://127.0.0.1:{server.server_port}"
     threading.Thread(target=server.serve_forever, daemon=True).start()
+    wait_for_server(url)
     webview.create_window(
         "AutoWord 排版工厂",
-        f"http://127.0.0.1:{port}",
+        url,
         width=1100,
         height=800,
         min_size=(760, 600),

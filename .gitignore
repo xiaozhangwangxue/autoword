@@ -11,6 +11,8 @@ dist/
 android/.gradle/
 assets/icons/icon-chroma.png
 assets/icons/icon-master.png
+assets/icons/icon-chroma-v2.png
+assets/icons/icon-master-v2.png
 assets/icons/AutoWord.iconset/
 
 # Virtual environments and local configuration

@@ -320,12 +320,12 @@ def index():
             .full { grid-column: 1 / -1; }
             .check { display:flex; align-items:center; gap:8px; margin: 4px 0 14px; font-size:14px; }
             .titlebar { display:flex; justify-content:space-between; align-items:start; gap:12px; }
-            .language { width:auto; padding:8px 11px; font-size:13px; box-shadow:none; white-space:nowrap; }
+            .language, .github { width:auto; padding:8px 11px; font-size:13px; box-shadow:none; white-space:nowrap; }
         </style>
     </head>
     <body>
         <div class="card">
-            <div class="titlebar"><h2 id="appTitle">排版工厂 <span class="badge">v17.0</span></h2><button class="language" type="button" id="languageToggle">English</button></div>
+            <div class="titlebar"><h2 id="appTitle">排版工厂 <span class="badge">v17.0</span></h2><div><button class="github" type="button" id="githubButton">GitHub</button> <button class="language" type="button" id="languageToggle">English</button></div></div>
 
             <form id="uploadForm">
                 <input type="hidden" name="language" id="languageInput" value="zh">
@@ -385,9 +385,10 @@ def index():
             const percentText = document.getElementById('percentText');
             const languageInput = document.getElementById('languageInput');
             const languageToggle = document.getElementById('languageToggle');
+            const githubButton = document.getElementById('githubButton');
             const translations = {
-                zh: { title:'排版工厂', paper:'1. 纸张规格', layout:'2. 排版规则', files:'3. 选择文件（多选）', start:'🚀 开始转换', font:'字体大小（pt）', spacing:'行间距（倍）', before:'段前（pt）', after:'段后（pt）', punctuation:'标点转换', remove:' 移除没有文字或图片的空段落', margins:' 使用自定义边距（cm）', top:'上', bottom:'下', left:'左', right:'右', footer:'页脚', customFooter:'自定义页脚文字（留空时使用首段）', half:'转半角（默认）', full:'转全角', preserve:'保留原样', first:'首段文字 + 页码', page:'仅页码', none:'不添加页脚', placeholder:'例如：课程作业', selectFiles:'请先选择文件！', processing:'处理中...', connect:'连接服务器...', connection:'连接失败', downloading:'✅ 完成，正在下载...', complete:'转换完成', retry:'重试', ready:'准备中...', toggle:'English' },
-                en: { title:'AutoWord Formatter', paper:'1. Paper size', layout:'2. Formatting rules', files:'3. Select files (multiple)', start:'🚀 Start formatting', font:'Font size (pt)', spacing:'Line spacing', before:'Space before (pt)', after:'Space after (pt)', punctuation:'Punctuation', remove:' Remove empty paragraphs without text or images', margins:' Use custom margins (cm)', top:'Top', bottom:'Bottom', left:'Left', right:'Right', footer:'Footer', customFooter:'Custom footer (uses first paragraph when blank)', half:'Convert to half-width (default)', full:'Convert to full-width', preserve:'Keep unchanged', first:'First paragraph + page number', page:'Page number only', none:'No footer', placeholder:'For example: Course assignment', selectFiles:'Select at least one file first.', processing:'Processing...', connect:'Connecting to local service...', connection:'Connection failed', downloading:'✅ Done. Downloading...', complete:'Formatting complete', retry:'Retry', ready:'Preparing...', toggle:'中文' }
+                zh: { title:'排版工厂', paper:'1. 纸张规格', layout:'2. 排版规则', files:'3. 选择文件（多选）', start:'🚀 开始转换', font:'字体大小（pt）', spacing:'行间距（倍）', before:'段前（pt）', after:'段后（pt）', punctuation:'标点转换', remove:' 移除没有文字或图片的空段落', margins:' 使用自定义边距（cm）', top:'上', bottom:'下', left:'左', right:'右', footer:'页脚', customFooter:'自定义页脚文字（留空时使用首段）', half:'转半角（默认）', full:'转全角', preserve:'保留原样', first:'首段文字 + 页码', page:'仅页码', none:'不添加页脚', placeholder:'例如：课程作业', selectFiles:'请先选择文件！', processing:'处理中...', connect:'连接服务器...', connection:'连接失败', downloading:'✅ 完成，正在下载...', complete:'转换完成', retry:'重试', ready:'准备中...', toggle:'English', github:'GitHub' },
+                en: { title:'AutoWord Formatter', paper:'1. Paper size', layout:'2. Formatting rules', files:'3. Select files (multiple)', start:'🚀 Start formatting', font:'Font size (pt)', spacing:'Line spacing', before:'Space before (pt)', after:'Space after (pt)', punctuation:'Punctuation', remove:' Remove empty paragraphs without text or images', margins:' Use custom margins (cm)', top:'Top', bottom:'Bottom', left:'Left', right:'Right', footer:'Footer', customFooter:'Custom footer (uses first paragraph when blank)', half:'Convert to half-width (default)', full:'Convert to full-width', preserve:'Keep unchanged', first:'First paragraph + page number', page:'Page number only', none:'No footer', placeholder:'For example: Course assignment', selectFiles:'Select at least one file first.', processing:'Processing...', connect:'Connecting to local service...', connection:'Connection failed', downloading:'✅ Done. Downloading...', complete:'Formatting complete', retry:'Retry', ready:'Preparing...', toggle:'中文', github:'GitHub' }
             };
             let language = localStorage.getItem('autoword-language') || 'zh';
             const labelText = (name, value) => document.querySelector(`[name="${name}"]`).parentElement.childNodes[0].nodeValue = value;
@@ -401,9 +402,10 @@ def index():
                 document.querySelector('[name="remove_empty"]').parentElement.childNodes[1].nodeValue = t.remove; document.querySelector('[name="custom_margins"]').parentElement.childNodes[1].nodeValue = t.margins;
                 const punct = document.querySelector('[name="punctuation"]').options; [punct[0].text, punct[1].text, punct[2].text] = [t.half, t.full, t.preserve];
                 const footer = document.querySelector('[name="footer_mode"]').options; [footer[0].text, footer[1].text, footer[2].text] = [t.first, t.page, t.none];
-                document.querySelector('[name="footer_text"]').placeholder = t.placeholder; if (!startBtn.disabled) startBtn.textContent = t.start; progressText.textContent = t.ready; languageToggle.textContent = t.toggle;
+                document.querySelector('[name="footer_text"]').placeholder = t.placeholder; if (!startBtn.disabled) startBtn.textContent = t.start; progressText.textContent = t.ready; languageToggle.textContent = t.toggle; githubButton.textContent = t.github;
             }
             languageToggle.addEventListener('click', () => setLanguage(language === 'zh' ? 'en' : 'zh'));
+            githubButton.addEventListener('click', () => window.open('https://github.com/xiaozhangwangxue/autoword', '_blank', 'noopener'));
             setLanguage(language);
 
             form.addEventListener('submit', async function(e) {

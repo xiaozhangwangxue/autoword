@@ -1,9 +1,9 @@
 import json
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from app import app, convert_punctuation, layout_settings, process_paragraph
-from desktop import available_port
+from desktop import wait_for_server
 from docx import Document
 
 
@@ -42,13 +42,12 @@ class AppTestCase(unittest.TestCase):
     def test_language_is_preserved_in_layout_settings(self):
         self.assertEqual(layout_settings({'language': 'en'})['language'], 'en')
 
-    @patch('desktop.socket.socket')
-    def test_desktop_launcher_chooses_an_available_local_port(self, socket_factory):
-        probe = socket_factory.return_value.__enter__.return_value
-        probe.getsockname.return_value = ('127.0.0.1', 57216)
+    @patch('desktop.urlopen')
+    def test_desktop_launcher_waits_for_local_service(self, open_url):
+        open_url.return_value = MagicMock()
 
-        self.assertEqual(available_port(), 57216)
-        probe.bind.assert_called_once_with(('127.0.0.1', 0))
+        self.assertIsNone(wait_for_server('http://127.0.0.1:12345'))
+        open_url.assert_called_once_with('http://127.0.0.1:12345', timeout=0.2)
 
     def test_paragraph_formatting_and_punctuation_modes(self):
         document = Document()
