@@ -1,28 +1,76 @@
-# AutoWord 排版工厂
+<div align="center">
+  <img src="assets/icons/app-icon.png" alt="AutoWord 图标" width="128" height="128">
 
-官方网站：[autoword.12323456.xyz](https://autoword.12323456.xyz)（提供各平台直接下载）
+  # AutoWord 排版工厂
 
-[English](README.en.md)
+  **一键统一 Word 文档排版 · 完全离线 · 跨平台使用**
 
-一个面向 `.docx` 文档的轻量级排版工具。桌面版默认把转换结果保存到系统“下载”文件夹，也可以在转换前自行选择导出位置并在完成后直接打开该文件夹。
+  [![Release](https://img.shields.io/github/v/release/xiaozhangwangxue/autoword?style=flat-square&color=1677ff)](https://github.com/xiaozhangwangxue/autoword/releases/latest)
+  [![CI](https://img.shields.io/github/actions/workflow/status/xiaozhangwangxue/autoword/ci.yml?branch=main&style=flat-square&label=tests)](https://github.com/xiaozhangwangxue/autoword/actions/workflows/ci.yml)
+  [![License](https://img.shields.io/github/license/xiaozhangwangxue/autoword?style=flat-square)](LICENSE)
+  [![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20Android-30363d?style=flat-square)](#下载与安装)
 
-> 当前界面名称为「排版工厂」。本项目不连接第三方服务，所有文档均在运行该服务的机器上处理。
+  [官方网站](https://autoword.12323456.xyz) · [下载最新版](https://autoword.12323456.xyz/#download) · [更新记录](https://github.com/xiaozhangwangxue/autoword/releases) · [English](README.en.md)
+</div>
 
-## 功能
+---
 
-- 批量处理 `.docx` 文件并打包下载
-- 可设置正文大小、行间距、段前/段后距离，以及是否移除空段落
-- 可选择将标点转为半角、全角或保持原样
-- 支持 A4 标准边距、A4 等宽边距、B5 小册子和自定义四边页边距
-- 可选择首段文字加页码、仅页码或不添加页脚
-- 自动清理超过 7 天的临时文件
+AutoWord 是一个专注于 `.docx` 文档的本地排版工具。选择文件和排版规则后，即可批量统一字体大小、行间距、段落间距、页边距、页脚与中英文标点。桌面版默认将成品保存到系统“下载”文件夹，也可以自行选择导出位置。
 
-## 快速开始
+> [!IMPORTANT]
+> 文档处理引擎随应用一起运行，不需要上传文件、登录账号或连接第三方服务；断网后仍可正常转换。
+
+## 为什么选择 AutoWord
+
+| 🔒 本机离线 | 🧰 灵活排版 | 📚 批量处理 | 💻 跨平台 |
+| --- | --- | --- | --- |
+| 文档不会上传到云端 | 字号、行距、段距和页边距均可设置 | 一次选择多个 `.docx` 文件 | 支持 macOS、Windows、Linux 与 Android |
+
+## 核心功能
+
+- **正文格式**：设置字体大小、行间距、段前与段后距离。
+- **页面布局**：支持 A4、B5、等宽边距、0.5/0.7 cm 预设、对称页和自定义四边页边距。
+- **标点转换**：一键转换全角、半角标点，也可保持原样。
+- **文档清理**：按需移除没有文字或图片的空段落。
+- **页脚设置**：可使用首段文字与页码、仅页码或不添加页脚。
+- **明确导出**：桌面版可选择保存目录，完成后显示文件列表并直接打开所在文件夹。
+- **双语界面**：应用与文档均提供简体中文和英文版本。
+
+## 下载与安装
+
+中国大陆用户可通过[官方网站](https://autoword.12323456.xyz/#download)直接下载，无需访问 GitHub。网站会自动识别设备，并在下载前显示对应的安装步骤。
+
+| 平台 | 安装包 | 系统要求 | 下载 |
+| --- | --- | --- | --- |
+| Android | APK | Android 7.0+ | [官网下载](https://autoword.12323456.xyz/downloads/AutoWord-android.apk) |
+| macOS | 拖拽安装 DMG | macOS 12+ | [官网下载](https://autoword.12323456.xyz/downloads/AutoWord-macos.dmg) |
+| Windows | ZIP | Windows 10 / 11 | [官网下载](https://autoword.12323456.xyz/downloads/AutoWord-windows.zip) |
+| Linux | tar.gz | 64 位 Linux | [官网下载](https://autoword.12323456.xyz/downloads/AutoWord-linux.tar.gz) |
+
+<details>
+<summary><strong>首次安装被系统拦截怎么办？</strong></summary>
+
+- **Android**：在系统提示中允许当前浏览器或文件管理器安装未知来源应用，然后选择“仍要安装”。
+- **macOS**：将 AutoWord 拖入“应用程序”，按住 Control 点击应用并选择“打开”，再确认一次。
+- **Windows**：若 SmartScreen 出现提示，请选择“更多信息”→“仍要运行”。
+- **Linux**：解压后为主程序添加执行权限，再启动应用。
+
+</details>
+
+## 三步完成排版
+
+1. 选择纸张方案并设置正文、间距、页边距、标点和页脚。
+2. 导入一个或多个 `.docx` 文件，并选择导出位置。
+3. 点击“开始转换”，完成后从文件列表直接打开成品。
+
+生成文件沿用原文件名，并在扩展名前添加 `_formatted`。例如：`作业.docx` → `作业_formatted.docx`。
+
+## 从源码运行
 
 需要 Python 3.10 或更高版本。
 
 ```bash
-git clone https://github.com/<你的用户名>/autoword.git
+git clone https://github.com/xiaozhangwangxue/autoword.git
 cd autoword
 python3 -m venv .venv
 source .venv/bin/activate
@@ -30,37 +78,24 @@ pip install -r requirements.txt
 python app.py
 ```
 
-随后在浏览器打开 [http://127.0.0.1:8080](http://127.0.0.1:8080)。
+随后打开 [http://127.0.0.1:8080](http://127.0.0.1:8080)。Windows 用户可使用 `.venv\Scripts\activate` 激活虚拟环境。
 
-## 生产运行
+<details>
+<summary><strong>生产运行与配置</strong></summary>
 
-不要使用 Flask 自带的开发服务器对外提供服务。可使用 Gunicorn：
+请使用 Gunicorn 等 WSGI 服务器，并通过带有 HTTPS 与访问控制的反向代理提供服务：
 
 ```bash
 gunicorn --workers 2 --bind 127.0.0.1:8080 app:app
 ```
 
-若要通过公网访问，请在反向代理层配置 HTTPS、访问控制和请求大小限制。默认单次请求上限为 100 MiB；可通过环境变量调整：
+默认单次请求上限为 100 MiB，可通过环境变量调整：
 
 ```bash
 MAX_UPLOAD_SIZE=$((200 * 1024 * 1024)) gunicorn --workers 2 --bind 127.0.0.1:8080 app:app
 ```
 
-## 使用方式
-
-1. 打开网页并选择纸张规格。
-2. 选择一个或多个 `.docx` 文件。
-3. 桌面版可选择导出位置（默认为“下载”文件夹），再点击“开始转换”；浏览器版会下载 `排版成品.zip`。
-
-输出文件沿用原文件名并在扩展名前加上 `_formatted`，例如 `作业.docx` 会变为 `作业_formatted.docx`。
-
-## 隐私与安全
-
-- 上传的文件与生成结果会写入运行机器的临时目录 `/tmp/mac_pro_uploads`，并在 7 天后自动清理。
-- 本项目不提供用户登录或访问控制，**不应直接暴露到公网**；公网部署请置于受保护的反向代理之后。
-- 仅上传你有权处理的文档，尤其注意其中可能包含的个人信息或保密内容。
-
-更多安全问题请参阅 [SECURITY.md](SECURITY.md)（[English](SECURITY.en.md)）。
+</details>
 
 ## 开发与测试
 
@@ -68,26 +103,31 @@ MAX_UPLOAD_SIZE=$((200 * 1024 * 1024)) gunicorn --workers 2 --bind 127.0.0.1:808
 python -m unittest discover -s tests -v
 ```
 
-GitHub Actions 会在每次推送和拉取请求时运行上述检查。
+GitHub Actions 会在推送与拉取请求中自动运行测试；推送 `v*` 标签后会构建并发布四个平台的安装包。
 
-## 下载桌面应用
+## 隐私与安全
 
-在 [Releases](https://github.com/xiaozhangwangxue/autoword/releases) 页面可下载 macOS、Windows、Linux 和 Android 版本。维护者推送形如 `v1.0.0` 的标签后，GitHub Actions 会自动构建并发布全部文件。
+- 桌面端与移动端均在设备本机处理文档，不连接第三方文档服务。
+- Web 模式的临时文件保存在 `/tmp/mac_pro_uploads`，并在 7 天后自动清理。
+- Web 服务没有内置账户系统，不应未经保护直接暴露到公网。
+- 仅处理你有权使用的文档，注意其中可能包含的个人或保密信息。
 
-Android APK 内置 Python 文档处理引擎，文件只在设备本机处理。首次安装需要在 Android 系统中允许来自浏览器或文件管理器的安装来源；发布前应替换 GitHub Actions 的调试签名为维护者自己的发布签名。
+详细说明见 [SECURITY.md](SECURITY.md)（[English](SECURITY.en.md)）。
 
-## 贡献
+## 参与项目
 
-欢迎提交 issue 和 pull request。提交前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)（[English](CONTRIBUTING.en.md)）。
+欢迎提交 [Issue](https://github.com/xiaozhangwangxue/autoword/issues) 与 Pull Request。开始前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)（[English](CONTRIBUTING.en.md)）。
 
-## 许可证
-
-本项目基于 [MIT License](LICENSE) 开源。
+AutoWord 基于 [MIT License](LICENSE) 开源。
 
 ## 捐款支持
 
-如果 AutoWord 对你有帮助，欢迎使用下方二维码捐款支持项目维护；完全自愿，感谢你的支持。
+如果 AutoWord 帮你节省了时间，可以自愿支持项目的持续维护与跨平台适配。感谢你的认可。
 
 | 微信支付 | 支付宝 |
-| --- | --- |
-| <img src="assets/donate/wechat.png" alt="微信支付收款码" width="300"> | <img src="assets/donate/alipay.jpg" alt="支付宝收款码" width="300"> |
+| :---: | :---: |
+| <img src="assets/donate/wechat.png" alt="微信支付收款码" width="260"> | <img src="assets/donate/alipay.jpg" alt="支付宝收款码" width="260"> |
+
+<div align="center">
+  <sub>Made with care for cleaner documents.</sub>
+</div>
