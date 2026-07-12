@@ -39,6 +39,12 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(settings['line_spacing'], 1.5)
         self.assertEqual(settings['punctuation'], 'fullwidth')
 
+    def test_margin_presets_override_paper_margins(self):
+        settings = layout_settings({'margin_preset': 'symmetric'})
+
+        self.assertEqual((settings['top'], settings['bottom'], settings['left'], settings['right']), (0.7, 0.7, 1.5, 0.7))
+        self.assertTrue(settings['mirror'])
+
     def test_language_is_preserved_in_layout_settings(self):
         self.assertEqual(layout_settings({'language': 'en'})['language'], 'en')
 

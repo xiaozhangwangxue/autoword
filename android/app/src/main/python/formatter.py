@@ -36,6 +36,7 @@ def format_document(source, destination, raw_options):
                 run.text = punctuation(run.text, options['punctuation'])
             run.font.size = Pt(options['font_size'])
     for section in doc.sections:
+        section.mirror_margins = options.get('mirror', False)
         section.top_margin = Cm(options['top']); section.bottom_margin = Cm(options['bottom'])
         section.left_margin = Cm(options['left']); section.right_margin = Cm(options['right'])
         if options['footer_mode'] != 'none':

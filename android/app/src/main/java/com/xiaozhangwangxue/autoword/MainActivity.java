@@ -25,7 +25,7 @@ public class MainActivity extends AppCompatActivity {
     private final List<Uri> files = new ArrayList<>();
     private TextView status;
     private EditText font, spacing, topMargin, bottomMargin, leftMargin, rightMargin;
-    private Spinner punctuation;
+    private Spinner punctuation, marginPreset;
     private CheckBox removeEmpty;
     private LinearLayout completedFiles;
     private ActivityResultLauncher<String[]> picker;
@@ -49,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
         font = inputRow(root, "正文大小（pt）", "10.5");
         spacing = inputRow(root, "行间距（倍）", "1.0");
         root.addView(label("页边距（cm）"));
+        marginPreset = new Spinner(this); marginPreset.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new String[]{"自定义", "四边都是 0.5 cm", "四边都是 0.7 cm", "对称页：内 1.5 cm，外/上下 0.7 cm"})); root.addView(marginPreset);
         topMargin = inputRow(root, "上边距", "0.7");
         bottomMargin = inputRow(root, "下边距", "0.7");
         leftMargin = inputRow(root, "左边距", "0.7");
@@ -63,6 +64,15 @@ public class MainActivity extends AppCompatActivity {
         picker = registerForActivityResult(new ActivityResultContracts.OpenMultipleDocuments(), uris -> { files.clear(); files.addAll(uris); status.setText("已选择 " + files.size() + " 个文件"); });
         choose.setOnClickListener(v -> picker.launch(new String[]{"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}));
         github.setOnClickListener(v -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/xiaozhangwangxue/autoword"))));
+        marginPreset.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
+            @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                if (position == 1) setMargins("0.5", "0.5", "0.5", "0.5");
+                else if (position == 2) setMargins("0.7", "0.7", "0.7", "0.7");
+                else if (position == 3) setMargins("0.7", "0.7", "1.5", "0.7");
+            }
+        });
+        marginPreset.setSelection(2);
         process.setOnClickListener(v -> process());
     }
 
@@ -74,13 +84,14 @@ public class MainActivity extends AppCompatActivity {
         EditText field = new EditText(this); field.setSingleLine(true); field.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL); field.setText(value);
         row.addView(field, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1)); parent.addView(row); return field;
     }
+    private void setMargins(String top, String bottom, String left, String right) { topMargin.setText(top); bottomMargin.setText(bottom); leftMargin.setText(left); rightMargin.setText(right); }
 
     private void process() {
         if (files.isEmpty()) { status.setText("请先选择 DOCX 文件"); return; }
         status.setText("正在离线处理…");
         new Thread(() -> { try {
             JSONObject o = new JSONObject(); o.put("font_size", Double.parseDouble(font.getText().toString())); o.put("line_spacing", Double.parseDouble(spacing.getText().toString()));
-            o.put("space_before", 0); o.put("space_after", 0); o.put("top", Double.parseDouble(topMargin.getText().toString())); o.put("bottom", Double.parseDouble(bottomMargin.getText().toString())); o.put("left", Double.parseDouble(leftMargin.getText().toString())); o.put("right", Double.parseDouble(rightMargin.getText().toString()));
+            o.put("space_before", 0); o.put("space_after", 0); o.put("top", Double.parseDouble(topMargin.getText().toString())); o.put("bottom", Double.parseDouble(bottomMargin.getText().toString())); o.put("left", Double.parseDouble(leftMargin.getText().toString())); o.put("right", Double.parseDouble(rightMargin.getText().toString())); o.put("mirror", marginPreset.getSelectedItemPosition() == 3);
             o.put("punctuation", new String[]{"halfwidth", "fullwidth", "preserve"}[punctuation.getSelectedItemPosition()]); o.put("remove_empty", removeEmpty.isChecked()); o.put("footer_mode", "first_line");
             Python py = Python.getInstance(); int done = 0; List<OutputFile> outputs = new ArrayList<>();
             for (Uri uri : files) {

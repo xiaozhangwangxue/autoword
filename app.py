@@ -98,7 +98,18 @@ def layout_settings(form):
     if preset not in PAGE_PRESETS:
         preset = 'A4_STD'
     width, height, top, bottom, left, right, mirror = PAGE_PRESETS[preset]
-    if form.get('custom_margins') == 'on':
+    margin_preset = form.get('margin_preset', 'paper')
+    if margin_preset == 'all_05':
+        top = bottom = left = right = 0.5
+        mirror = False
+    elif margin_preset == 'all_07':
+        top = bottom = left = right = 0.7
+        mirror = False
+    elif margin_preset == 'symmetric':
+        top = bottom = right = 0.7
+        left = 1.5
+        mirror = True
+    elif form.get('custom_margins') == 'on':
         top = bounded_number(form, 'top_margin', top, 0.1, 8)
         bottom = bounded_number(form, 'bottom_margin', bottom, 0.1, 8)
         left = bounded_number(form, 'left_margin', left, 0.1, 8)
@@ -347,6 +358,9 @@ def index():
                     </label>
                     <label class="full check"><input type="checkbox" name="remove_empty" checked> 移除没有文字或图片的空段落</label>
                     <label class="full check"><input type="checkbox" name="custom_margins"> 使用自定义边距（cm）</label>
+                    <label class="full">页边距预设
+                        <select name="margin_preset"><option value="paper">跟随纸张方案</option><option value="all_05">四边都是 0.5 cm</option><option value="all_07">四边都是 0.7 cm</option><option value="symmetric">对称页：内 1.5 cm，外/上下 0.7 cm</option></select>
+                    </label>
                     <label>上<input type="number" name="top_margin" min="0.1" max="8" step="0.1" value="0.7"></label>
                     <label>下<input type="number" name="bottom_margin" min="0.1" max="8" step="0.1" value="0.7"></label>
                     <label>左<input type="number" name="left_margin" min="0.1" max="8" step="0.1" value="0.7"></label>
@@ -387,8 +401,8 @@ def index():
             const languageToggle = document.getElementById('languageToggle');
             const githubButton = document.getElementById('githubButton');
             const translations = {
-                zh: { title:'排版工厂', paper:'1. 纸张规格', layout:'2. 排版规则', files:'3. 选择文件（多选）', start:'🚀 开始转换', font:'字体大小（pt）', spacing:'行间距（倍）', before:'段前（pt）', after:'段后（pt）', punctuation:'标点转换', remove:' 移除没有文字或图片的空段落', margins:' 使用自定义边距（cm）', top:'上', bottom:'下', left:'左', right:'右', footer:'页脚', customFooter:'自定义页脚文字（留空时使用首段）', half:'转半角（默认）', full:'转全角', preserve:'保留原样', first:'首段文字 + 页码', page:'仅页码', none:'不添加页脚', placeholder:'例如：课程作业', selectFiles:'请先选择文件！', processing:'处理中...', connect:'连接服务器...', connection:'连接失败', downloading:'✅ 完成，正在下载...', complete:'转换完成', retry:'重试', ready:'准备中...', toggle:'English', github:'GitHub' },
-                en: { title:'AutoWord Formatter', paper:'1. Paper size', layout:'2. Formatting rules', files:'3. Select files (multiple)', start:'🚀 Start formatting', font:'Font size (pt)', spacing:'Line spacing', before:'Space before (pt)', after:'Space after (pt)', punctuation:'Punctuation', remove:' Remove empty paragraphs without text or images', margins:' Use custom margins (cm)', top:'Top', bottom:'Bottom', left:'Left', right:'Right', footer:'Footer', customFooter:'Custom footer (uses first paragraph when blank)', half:'Convert to half-width (default)', full:'Convert to full-width', preserve:'Keep unchanged', first:'First paragraph + page number', page:'Page number only', none:'No footer', placeholder:'For example: Course assignment', selectFiles:'Select at least one file first.', processing:'Processing...', connect:'Connecting to local service...', connection:'Connection failed', downloading:'✅ Done. Downloading...', complete:'Formatting complete', retry:'Retry', ready:'Preparing...', toggle:'中文', github:'GitHub' }
+                zh: { title:'排版工厂', paper:'1. 纸张规格', layout:'2. 排版规则', files:'3. 选择文件（多选）', start:'🚀 开始转换', font:'字体大小（pt）', spacing:'行间距（倍）', before:'段前（pt）', after:'段后（pt）', punctuation:'标点转换', remove:' 移除没有文字或图片的空段落', margins:' 使用自定义边距（cm）', marginPreset:'页边距预设', top:'上', bottom:'下', left:'左', right:'右', footer:'页脚', customFooter:'自定义页脚文字（留空时使用首段）', half:'转半角（默认）', full:'转全角', preserve:'保留原样', first:'首段文字 + 页码', page:'仅页码', none:'不添加页脚', paperPreset:'跟随纸张方案', all05:'四边都是 0.5 cm', all07:'四边都是 0.7 cm', symmetric:'对称页：内 1.5 cm，外/上下 0.7 cm', placeholder:'例如：课程作业', selectFiles:'请先选择文件！', processing:'处理中...', connect:'连接服务器...', connection:'连接失败', downloading:'✅ 完成，正在下载...', complete:'转换完成', retry:'重试', ready:'准备中...', toggle:'English', github:'GitHub' },
+                en: { title:'AutoWord Formatter', paper:'1. Paper size', layout:'2. Formatting rules', files:'3. Select files (multiple)', start:'🚀 Start formatting', font:'Font size (pt)', spacing:'Line spacing', before:'Space before (pt)', after:'Space after (pt)', punctuation:'Punctuation', remove:' Remove empty paragraphs without text or images', margins:' Use custom margins (cm)', marginPreset:'Margin preset', top:'Top', bottom:'Bottom', left:'Left', right:'Right', footer:'Footer', customFooter:'Custom footer (uses first paragraph when blank)', half:'Convert to half-width (default)', full:'Convert to full-width', preserve:'Keep unchanged', first:'First paragraph + page number', page:'Page number only', none:'No footer', paperPreset:'Use paper preset', all05:'0.5 cm on all sides', all07:'0.7 cm on all sides', symmetric:'Mirrored: 1.5 cm inner, 0.7 cm outer/top/bottom', placeholder:'For example: Course assignment', selectFiles:'Select at least one file first.', processing:'Processing...', connect:'Connecting to local service...', connection:'Connection failed', downloading:'✅ Done. Downloading...', complete:'Formatting complete', retry:'Retry', ready:'Preparing...', toggle:'中文', github:'GitHub' }
             };
             let language = localStorage.getItem('autoword-language') || 'zh';
             const labelText = (name, value) => document.querySelector(`[name="${name}"]`).parentElement.childNodes[0].nodeValue = value;
@@ -399,13 +413,21 @@ def index():
                 document.getElementById('paperLabel').textContent = t.paper; document.getElementById('layoutLabel').textContent = t.layout; document.getElementById('fileLabel').textContent = t.files;
                 labelText('font_size', t.font); labelText('line_spacing', t.spacing); labelText('space_before', t.before); labelText('space_after', t.after); labelText('top_margin', t.top); labelText('bottom_margin', t.bottom); labelText('left_margin', t.left); labelText('right_margin', t.right); labelText('footer_text', t.customFooter);
                 document.querySelector('[name="punctuation"]').parentElement.childNodes[0].nodeValue = t.punctuation; document.querySelector('[name="footer_mode"]').parentElement.childNodes[0].nodeValue = t.footer;
+                document.querySelector('[name="margin_preset"]').parentElement.childNodes[0].nodeValue = t.marginPreset;
                 document.querySelector('[name="remove_empty"]').parentElement.childNodes[1].nodeValue = t.remove; document.querySelector('[name="custom_margins"]').parentElement.childNodes[1].nodeValue = t.margins;
                 const punct = document.querySelector('[name="punctuation"]').options; [punct[0].text, punct[1].text, punct[2].text] = [t.half, t.full, t.preserve];
                 const footer = document.querySelector('[name="footer_mode"]').options; [footer[0].text, footer[1].text, footer[2].text] = [t.first, t.page, t.none];
+                const margins = document.querySelector('[name="margin_preset"]').options; [margins[0].text, margins[1].text, margins[2].text, margins[3].text] = [t.paperPreset, t.all05, t.all07, t.symmetric];
                 document.querySelector('[name="footer_text"]').placeholder = t.placeholder; if (!startBtn.disabled) startBtn.textContent = t.start; progressText.textContent = t.ready; languageToggle.textContent = t.toggle; githubButton.textContent = t.github;
             }
             languageToggle.addEventListener('click', () => setLanguage(language === 'zh' ? 'en' : 'zh'));
             githubButton.addEventListener('click', () => window.open('https://github.com/xiaozhangwangxue/autoword', '_blank', 'noopener'));
+            document.querySelector('[name="margin_preset"]').addEventListener('change', event => {
+                const values = { all_05:['0.5','0.5','0.5','0.5'], all_07:['0.7','0.7','0.7','0.7'], symmetric:['0.7','0.7','1.5','0.7'] }[event.target.value];
+                if (!values) return;
+                ['top_margin','bottom_margin','left_margin','right_margin'].forEach((name, index) => document.querySelector(`[name="${name}"]`).value = values[index]);
+                document.querySelector('[name="custom_margins"]').checked = false;
+            });
             setLanguage(language);
 
             form.addEventListener('submit', async function(e) {
