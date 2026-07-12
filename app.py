@@ -237,10 +237,13 @@ def index():
             /* 全局重置，适配移动端 */
             * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
             body {
-                background-color: #f2f2f7;
+                background:
+                    radial-gradient(circle at 15% 10%, rgba(90, 175, 255, .42), transparent 34%),
+                    radial-gradient(circle at 90% 70%, rgba(126, 94, 255, .3), transparent 38%),
+                    linear-gradient(145deg, #dbefff 0%, #f5f1ff 48%, #d9edff 100%);
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                 margin: 0;
-                padding: 20px 0;
+                padding: 32px 0;
                 color: #1c1c1e;
                 display: flex;
                 justify-content: center;
@@ -248,15 +251,22 @@ def index():
             }
 
             .card {
-                background: white;
-                border-radius: 18px;
-                box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+                position: relative;
+                overflow: hidden;
+                background: linear-gradient(145deg, rgba(255,255,255,.76), rgba(255,255,255,.46));
+                border: 1px solid rgba(255,255,255,.84);
+                border-radius: 28px;
+                box-shadow: 0 28px 80px rgba(48, 88, 138, .22), inset 0 1px 0 rgba(255,255,255,.9);
+                backdrop-filter: blur(34px) saturate(170%);
+                -webkit-backdrop-filter: blur(34px) saturate(170%);
                 padding: 24px;
                 width: 92%; /* 移动端占满宽度 */
                 max-width: 500px; /* 桌面端限制宽度 */
                 margin: auto;
                 transition: transform 0.3s ease;
             }
+            .card::before { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(120deg,rgba(255,255,255,.42),transparent 32%,rgba(255,255,255,.12) 70%,transparent); }
+            .card > * { position:relative; z-index:1; }
 
             h2 {
                 margin-top: 0;
@@ -291,7 +301,9 @@ def index():
                 border: 1px solid #e5e5ea;
                 border-radius: 12px;
                 font-size: 16px; /* 防止iOS缩放 */
-                background-color: #f9f9fa;
+                background: rgba(255,255,255,.56);
+                border-color: rgba(255,255,255,.78);
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.8), 0 6px 18px rgba(58,91,130,.06);
                 appearance: none; /* 去除原生样式 */
                 outline: none;
             }
@@ -340,6 +352,14 @@ def index():
             .check { display:flex; align-items:center; gap:8px; margin: 4px 0 14px; font-size:14px; }
             .titlebar { display:flex; justify-content:space-between; align-items:start; gap:12px; }
             .language, .github { width:auto; padding:8px 11px; font-size:13px; box-shadow:none; white-space:nowrap; }
+            .export-row { display:flex; gap:8px; margin-bottom:18px; }
+            .export-row input { margin:0; min-width:0; }
+            .export-row button { width:auto; flex:0 0 auto; padding:11px 14px; font-size:14px; box-shadow:none; }
+            #resultPanel { display:none; margin-top:14px; padding:14px; border-radius:14px; background:rgba(52,199,89,.1); border:1px solid rgba(52,199,89,.24); }
+            #resultPanel p { margin:0 0 8px; font-size:13px; color:#28713c; word-break:break-all; }
+            #resultList { margin:0 0 10px; padding-left:20px; font-size:13px; }
+            #openFolderButton { width:auto; padding:9px 12px; font-size:13px; box-shadow:none; background:rgba(0,113,227,.9); }
+            @media (max-width: 620px) { body { padding: max(42px, env(safe-area-inset-top)) 0 20px; } .card { border-radius:22px; padding:20px; } }
         </style>
     </head>
     <body>
@@ -382,6 +402,12 @@ def index():
                 <label id="fileLabel">3. 选择文件 (多选)</label>
                 <input type="file" id="fileInput" name="file" multiple accept=".docx" required>
 
+                <label id="exportLabel">4. 导出位置</label>
+                <div class="export-row">
+                    <input type="text" id="exportDirectory" readonly value="下载文件夹">
+                    <button type="button" id="chooseExportButton">选择…</button>
+                </div>
+
                 <button type="submit" id="startBtn">🚀 开始转换</button>
             </form>
 
@@ -394,6 +420,11 @@ def index():
                     <div id="progressFill" class="progress-bar-fill"></div>
                 </div>
                 <div id="logBox"></div>
+                <div id="resultPanel">
+                    <p id="resultDirectory"></p>
+                    <ul id="resultList"></ul>
+                    <button type="button" id="openFolderButton">在文件夹中显示</button>
+                </div>
             </div>
         </div>
 
@@ -408,10 +439,18 @@ def index():
             const languageInput = document.getElementById('languageInput');
             const languageToggle = document.getElementById('languageToggle');
             const githubButton = document.getElementById('githubButton');
+            const exportDirectory = document.getElementById('exportDirectory');
+            const chooseExportButton = document.getElementById('chooseExportButton');
+            const resultPanel = document.getElementById('resultPanel');
+            const resultDirectory = document.getElementById('resultDirectory');
+            const resultList = document.getElementById('resultList');
+            const openFolderButton = document.getElementById('openFolderButton');
             const translations = {
                 zh: { title:'排版工厂', paper:'1. 纸张规格', layout:'2. 排版规则', files:'3. 选择文件（多选）', start:'🚀 开始转换', font:'字体大小（pt）', spacing:'行间距（倍）', before:'段前（pt）', after:'段后（pt）', punctuation:'标点转换', remove:' 移除没有文字或图片的空段落', margins:' 使用自定义边距（cm）', marginPreset:'页边距预设', top:'上', bottom:'下', left:'左', right:'右', footer:'页脚', customFooter:'自定义页脚文字（留空时使用首段）', half:'转半角（默认）', full:'转全角', preserve:'保留原样', first:'首段文字 + 页码', page:'仅页码', none:'不添加页脚', paperPreset:'跟随纸张方案', all05:'四边都是 0.5 cm', all07:'四边都是 0.7 cm', symmetric:'对称页：内 1.5 cm，外/上下 0.7 cm', placeholder:'例如：课程作业', selectFiles:'请先选择文件！', processing:'处理中...', connect:'连接服务器...', connection:'连接失败', downloading:'✅ 完成，正在下载...', complete:'转换完成', retry:'重试', ready:'准备中...', toggle:'English', github:'GitHub' },
                 en: { title:'AutoWord Formatter', paper:'1. Paper size', layout:'2. Formatting rules', files:'3. Select files (multiple)', start:'🚀 Start formatting', font:'Font size (pt)', spacing:'Line spacing', before:'Space before (pt)', after:'Space after (pt)', punctuation:'Punctuation', remove:' Remove empty paragraphs without text or images', margins:' Use custom margins (cm)', marginPreset:'Margin preset', top:'Top', bottom:'Bottom', left:'Left', right:'Right', footer:'Footer', customFooter:'Custom footer (uses first paragraph when blank)', half:'Convert to half-width (default)', full:'Convert to full-width', preserve:'Keep unchanged', first:'First paragraph + page number', page:'Page number only', none:'No footer', paperPreset:'Use paper preset', all05:'0.5 cm on all sides', all07:'0.7 cm on all sides', symmetric:'Mirrored: 1.5 cm inner, 0.7 cm outer/top/bottom', placeholder:'For example: Course assignment', selectFiles:'Select at least one file first.', processing:'Processing...', connect:'Connecting to local service...', connection:'Connection failed', downloading:'✅ Done. Downloading...', complete:'Formatting complete', retry:'Retry', ready:'Preparing...', toggle:'中文', github:'GitHub' }
             };
+            Object.assign(translations.zh, { export:'4. 导出位置', choose:'选择…', reveal:'在文件夹中显示', saved:'已保存到：', downloading:'✅ 完成，正在保存文件...' });
+            Object.assign(translations.en, { export:'4. Export location', choose:'Choose…', reveal:'Show in folder', saved:'Saved to: ', downloading:'✅ Done. Saving files...' });
             let language = localStorage.getItem('autoword-language') || 'zh';
             const labelText = (name, value) => document.querySelector(`[name="${name}"]`).parentElement.childNodes[0].nodeValue = value;
             function setLanguage(next) {
@@ -419,6 +458,7 @@ def index():
                 const t = translations[language]; document.documentElement.lang = language === 'en' ? 'en' : 'zh-CN'; document.title = t.title;
                 document.getElementById('appTitle').childNodes[0].nodeValue = t.title + ' ';
                 document.getElementById('paperLabel').textContent = t.paper; document.getElementById('layoutLabel').textContent = t.layout; document.getElementById('fileLabel').textContent = t.files;
+                document.getElementById('exportLabel').textContent = t.export; chooseExportButton.textContent = t.choose; openFolderButton.textContent = t.reveal;
                 labelText('font_size', t.font); labelText('line_spacing', t.spacing); labelText('space_before', t.before); labelText('space_after', t.after); labelText('top_margin', t.top); labelText('bottom_margin', t.bottom); labelText('left_margin', t.left); labelText('right_margin', t.right); labelText('footer_text', t.customFooter);
                 document.querySelector('[name="punctuation"]').parentElement.childNodes[0].nodeValue = t.punctuation; document.querySelector('[name="footer_mode"]').parentElement.childNodes[0].nodeValue = t.footer;
                 document.querySelector('[name="margin_preset"]').parentElement.childNodes[0].nodeValue = t.marginPreset;
@@ -430,6 +470,13 @@ def index():
             }
             languageToggle.addEventListener('click', () => setLanguage(language === 'zh' ? 'en' : 'zh'));
             githubButton.addEventListener('click', () => window.open('https://github.com/xiaozhangwangxue/autoword', '_blank', 'noopener'));
+            window.addEventListener('pywebviewready', async () => { exportDirectory.value = await window.pywebview.api.get_default_export_directory(); });
+            chooseExportButton.addEventListener('click', async () => {
+                if (window.pywebview?.api) exportDirectory.value = await window.pywebview.api.choose_export_directory();
+            });
+            openFolderButton.addEventListener('click', async () => {
+                if (window.pywebview?.api) await window.pywebview.api.open_export_directory(exportDirectory.value);
+            });
             document.querySelector('[name="margin_preset"]').addEventListener('change', event => {
                 const values = { all_05:['0.5','0.5','0.5','0.5'], all_07:['0.7','0.7','0.7','0.7'], symmetric:['0.7','0.7','1.5','0.7'] }[event.target.value];
                 if (!values) return;
@@ -448,6 +495,7 @@ def index():
                 startBtn.disabled = true;
                 startBtn.textContent = t.processing;
                 progressPanel.style.display = 'block';
+                resultPanel.style.display = 'none';
                 logBox.innerHTML = '<div class="log-line">> ' + t.connect + '</div>';
 
                 const formData = new FormData(form);
@@ -495,7 +543,17 @@ def index():
                                     div.textContent = "> " + t.downloading;
                                     logBox.appendChild(div);
 
-                                    window.location.href = "/download/" + data.job_id;
+                                    if (window.pywebview?.api) {
+                                        const result = await window.pywebview.api.export_job(data.job_id, exportDirectory.value);
+                                        if (!result.ok) throw new Error(result.error || t.connection);
+                                        exportDirectory.value = result.directory;
+                                        resultDirectory.textContent = t.saved + result.directory;
+                                        resultList.innerHTML = '';
+                                        result.files.forEach(file => { const li = document.createElement('li'); li.textContent = file.name; resultList.appendChild(li); });
+                                        resultPanel.style.display = 'block';
+                                    } else {
+                                        window.location.href = "/download/" + data.job_id;
+                                    }
 
                                     startBtn.textContent = t.complete;
                                     startBtn.style.backgroundColor = "#34c759";
@@ -592,9 +650,13 @@ def process_stream():
             return
 
         zip_path = os.path.join(job_dir, f"result_{job_id}.zip")
+        output_dir = os.path.join(job_dir, "output")
+        os.makedirs(output_dir, exist_ok=True)
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
             for fname, fdata in processed_files:
                 zf.writestr(fname, fdata)
+                with open(os.path.join(output_dir, fname), 'wb') as output_file:
+                    output_file.write(fdata)
 
         yield json.dumps({"status": "progress", "val": 1.0, "msg": "完成"}) + "\n"
         yield json.dumps({"status": "done", "job_id": job_id}) + "\n"

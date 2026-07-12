@@ -162,9 +162,23 @@
               <a href="/downloads/AutoWord-linux.tar.gz" download data-zh-aria="下载 Linux 版本" data-en-aria="Download Linux version" aria-label="下载 Linux 版本">↓</a>
             </article>
           </div>
-          <p class="version-note"><span data-zh="当前版本" data-en="Current version">当前版本</span> v1.0.10 · <span data-zh="发布于 2026年7月" data-en="Released July 2026">发布于 2026年7月</span></p>
+          <p class="version-note"><span data-zh="当前版本" data-en="Current version">当前版本</span> v1.0.11 · <span data-zh="发布于 2026年7月" data-en="Released July 2026">发布于 2026年7月</span></p>
         </div>
       </section>
+
+      <dialog class="install-dialog" id="installDialog" aria-labelledby="installTitle">
+        <button class="dialog-close" id="installClose" type="button" aria-label="关闭">×</button>
+        <div class="dialog-platform" id="installSymbol">⌘</div>
+        <p class="dialog-kicker" data-zh="下载前请先了解" data-en="Before you download">下载前请先了解</p>
+        <h2 id="installTitle">安装 AutoWord</h2>
+        <p class="dialog-lead" id="installLead"></p>
+        <ol class="install-steps" id="installSteps"></ol>
+        <div class="dialog-note" id="installNote"></div>
+        <div class="dialog-actions">
+          <button class="button button-secondary" id="installCancel" type="button" data-zh="稍后下载" data-en="Not now">稍后下载</button>
+          <a class="button button-primary" id="installContinue" href="#" download><span data-zh="我知道了，继续下载" data-en="Got it, download">我知道了，继续下载</span> ↓</a>
+        </div>
+      </dialog>
 
       <section class="section shell open-source-section">
         <div class="open-source-copy reveal">

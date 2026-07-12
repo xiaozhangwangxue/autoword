@@ -105,3 +105,15 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: release-assets/*
+          body: |
+            ## 中文更新说明
+            - 桌面端可自行选择导出位置，默认保存到系统“下载”文件夹。
+            - 转换完成后显示成品文件列表，并可直接打开导出文件夹。
+            - macOS 界面升级为液态玻璃风格，保留拖拽安装 DMG。
+            - 官网下载前会按 Android、macOS、Windows 和 Linux 显示对应安装提示。
+
+            ## English release notes
+            - Desktop builds now let users choose an export location and default to the system Downloads folder.
+            - Completed files are listed in-app, with a button to reveal the export folder.
+            - The macOS interface now uses a liquid-glass visual treatment while retaining the drag-to-install DMG.
+            - The official website shows platform-specific installation guidance before each download.

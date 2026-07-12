@@ -125,6 +125,19 @@ img { max-width: 100%; }
 .platform-symbol.linux { background: linear-gradient(135deg, #ffc83d, #e28d00); color: #392100; }
 .version-note { text-align: center; margin: 22px 0 0; color: #71839f; font-size: 12px; }
 
+.install-dialog { width:min(620px, calc(100% - 28px)); padding:32px; color:var(--text); border:1px solid rgba(158,190,255,.25); border-radius:28px; background:linear-gradient(145deg,rgba(13,33,66,.97),rgba(5,17,38,.98)); box-shadow:0 35px 100px rgba(0,0,0,.58); }
+.install-dialog::backdrop { background:rgba(1,7,18,.74); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+.dialog-close { position:absolute; right:18px; top:16px; width:38px; height:38px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.05); color:#dce9ff; font-size:24px; cursor:pointer; }
+.dialog-platform { width:58px; height:58px; display:grid; place-items:center; border-radius:18px; background:linear-gradient(135deg,#2696ff,#0562d9); font-size:25px; font-weight:900; }
+.dialog-platform.android { background:linear-gradient(135deg,#4bcf7e,#159b54); }.dialog-platform.macos { background:linear-gradient(135deg,#8e9db3,#3b4a61); }.dialog-platform.windows { background:linear-gradient(135deg,#32a4ff,#0871d1); }.dialog-platform.linux { background:linear-gradient(135deg,#ffc83d,#e28d00); color:#392100; }
+.dialog-kicker { margin:18px 0 2px; color:var(--blue-light); font-size:12px; font-weight:850; letter-spacing:.12em; text-transform:uppercase; }
+.install-dialog h2 { margin:0; font-size:30px; letter-spacing:-.035em; }.dialog-lead { color:var(--muted); margin:8px 0 20px; }
+.install-steps { list-style:none; margin:0; padding:0; display:grid; gap:10px; counter-reset:steps; }
+.install-steps li { display:flex; align-items:center; gap:13px; padding:13px 14px; border:1px solid var(--line); border-radius:15px; background:rgba(255,255,255,.035); }
+.install-steps li span { width:30px; height:30px; flex:0 0 auto; display:grid; place-items:center; border-radius:10px; color:#eaf4ff; background:rgba(32,135,255,.2); font-weight:850; }.install-steps li p { margin:0; color:#d9e6f8; }
+.dialog-note { margin-top:14px; padding:11px 13px; border-radius:12px; background:rgba(255,213,61,.09); color:#f5d875; font-size:13px; }
+.dialog-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:22px; }.dialog-actions .button { border:0; cursor:pointer; }
+
 .open-source-section { display: grid; grid-template-columns: .9fr 1.1fr; gap: 70px; align-items: center; }
 .text-link { display: inline-flex; gap: 10px; margin-top: 24px; color: #79bdff; font-weight: 750; }
 .code-card { border: 1px solid var(--line); border-radius: 25px; overflow: hidden; background: #071429; box-shadow: var(--shadow); }
@@ -176,8 +189,8 @@ img { max-width: 100%; }
   .feature-large { grid-row: auto; }.privacy-card { grid-column: auto; align-items: flex-start; }
   .recommended-download { align-items: stretch; flex-direction: column; }
   .button-download { width: 100%; }
+  .install-dialog { padding:24px 18px 20px; border-radius:22px; }.dialog-actions { flex-direction:column-reverse; }.dialog-actions .button { width:100%; }
   .recommended-label { position: static; display: block; margin-bottom: 3px; }
   .donation-cards { gap: 10px; }.donation-cards figure { padding: 8px; border-radius: 17px; }.donation-cards img { border-radius: 10px; }
   .site-footer { flex-direction: column; justify-content: center; text-align: center; padding: 36px 0; }
 }
-

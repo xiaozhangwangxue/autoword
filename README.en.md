@@ -4,7 +4,7 @@ Official website: [autoword.12323456.xyz](https://autoword.12323456.xyz) with di
 
 [简体中文](README.md)
 
-AutoWord is a lightweight DOCX formatting tool. Select one or more Word documents, choose the rules you need, and download a ZIP file containing the formatted results.
+AutoWord is a lightweight DOCX formatting tool. Desktop builds save results to the system Downloads folder by default, let you choose another export location, and can reveal the folder when conversion finishes.
 
 > Documents are processed on the machine running AutoWord. The application does not use third-party services.
 

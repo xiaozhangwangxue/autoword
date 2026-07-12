@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch
 
 from app import app, convert_punctuation, layout_settings, process_paragraph
-from desktop import main
+from desktop import DesktopApi, main
 from docx import Document
 
 
@@ -57,6 +57,8 @@ class AppTestCase(unittest.TestCase):
         self.assertIn("startBtn.disabled = false", html)
         self.assertIn("document.getElementById('fileInput').value = ''", html)
         self.assertIn("startBtn.style.backgroundColor = ''", html)
+        self.assertIn("window.pywebview.api.export_job", html)
+        self.assertIn('id="exportDirectory"', html)
 
     def test_custom_layout_settings_are_bounded(self):
         settings = layout_settings({
@@ -87,6 +89,7 @@ class AppTestCase(unittest.TestCase):
         self.assertEqual(args[0], 'AutoWord 排版工厂')
         self.assertIs(args[1], app)
         self.assertEqual(kwargs['min_size'], (760, 600))
+        self.assertIsInstance(kwargs['js_api'], DesktopApi)
         start.assert_called_once_with(private_mode=True)
 
     def test_paragraph_formatting_and_punctuation_modes(self):
